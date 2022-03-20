@@ -10,10 +10,10 @@ Last revision: 2022-03-15 (BM)
 // Alex Marrinan
 // AAA Studio
 // Mod 1: Changed size of grid to 16 x 16
-// Mod 2: Change color by pressing number buttons (1-8)
-// Mod 3: Fill entire board by pressing F key
+// Mod 2: Drag over multiple beads to paint in one stroke
+// Mod 3: Change color by pressing number buttons (1-9)
 // Mod 4: Change grid size using arrow keys
-// Mod 5: Drag over multiple beads to paint in one stroke
+// Mod 5: Fill entire board by pressing F key
 
 
 //key vaues
@@ -25,13 +25,14 @@ let YELLOW = 53 //5
 let GREEN = 54  //6
 let BLUE = 55   //7
 let VIOLET = 56 //8
+let GRAY = 57 //9
 
 let FILL_KEY = 102   //F
+let HELP_KEY = 104 //H
 let UP_KEY = 1006    //UP
 let DOWN_KEY = 1008  //DOWN
 let LEFT_KEY = 1005  //LEFT
 let RIGHT_KEY = 1007 //RIGHT
-
 
 //Board size
 var boardWidth = 16
@@ -48,11 +49,12 @@ PS.init = function( system, options ) {
 
 	// Set background color to Perlenspiel logo gray
 
-	PS.gridColor( 0x909090 );
+	PS.gridColor( 0x303030 );
 
 	// Change status line color and text
 
-	PS.statusText( "Paint! (Use numbers 1-8 to change color)");
+	PS.statusColor( PS.COLOR_WHITE );
+	PS.statusText( "Paint! (Press 'H' for help)");
 	
 	// Preload click sound
 
@@ -62,6 +64,9 @@ PS.init = function( system, options ) {
 PS.touch = function( x, y, data, options ) {
 	//when the user holds left click, begin painting
 	painting = true;
+	//paint current bead
+	PS.color( x, y, currentColor ); // set color to currentColor
+	PS.data( x, y, currentColor );  // set data to color value
 };
 
 /*
@@ -130,6 +135,7 @@ PS.exitGrid = function( options ) {
 	painting = false;
 };
 
+
 /*
 PS.keyDown ( key, shift, ctrl, options )
 Called when a key on the keyboard is pressed.
@@ -141,56 +147,72 @@ This function doesn't have to do anything. Any value returned is ignored.
 */
 
 PS.keyDown = function( key, shift, ctrl, options ) {
-	// Uncomment the following code line to inspect first three parameters:
 
 	//PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 	
-	if (key == FILL_KEY){ //F key fills board with current color
-		for (let x = 0; x < boardWidth; x++) {
-			for (let y = 0; y < boardHeight; y++) {
-				PS.color(x, y, currentColor);
-				PS.data(x, y, currentColor);
-			}
-		}
+	if (key == HELP_KEY){//H key displays help/controls text
+		PS.statusText( "1-9: change color|F: fill|Arrows: change size");
+	}
+	else if (key == FILL_KEY){ //F key fills board with current color
+		fillCanvas();
 	}
 	else if (key == RIGHT_KEY){ //right key increases the grid width
-		boardWidth++;
-		if (boardWidth > 32){
-			boardWidth = 32;
-		}
-		PS.gridSize(boardWidth, boardHeight);
-		PS.gridColor( 0x909090 );
-		PS.statusText(`Changed canvas size: ${boardWidth}x${boardHeight}`);
+		changeCanvasSize(true, +1)
 	}
 	else if (key == LEFT_KEY){//left key decreases the grid width
-		boardWidth--;
-		if (boardWidth < 1){
-			boardWidth = 1;
-		}
-		PS.gridSize(boardWidth, boardHeight);
-		PS.gridColor( 0x909090 );
-		PS.statusText(`Changed canvas size: ${boardWidth}x${boardHeight}`);
+		changeCanvasSize(true, -1);
 	}
 	else if (key == UP_KEY){ //up key increases the grid height
-		boardHeight++;
-		if (boardHeight > 32){
-			boardHeight = 32;
-		}
-		PS.gridSize(boardWidth, boardHeight);
-		PS.gridColor( 0x909090 );
-		PS.statusText(`Changed canvas size: ${boardWidth}x${boardHeight}`);
+		changeCanvasSize(false, +1);
 	}
 	else if (key == DOWN_KEY){//down key decreases the grid height
-		boardHeight--;
-		if (boardHeight < 1){
+		changeCanvasSize(false, -1);
+	}
+	else {//check if should change color
+		changeColor(key);
+	}
+};
+
+//fills the canvas with the current color
+function fillCanvas(){
+	for (let x = 0; x < boardWidth; x++) {
+		for (let y = 0; y < boardHeight; y++) {
+			PS.color(x, y, currentColor);
+			PS.data(x, y, currentColor);
+		}
+	}
+	PS.statusText(`Filled Canvas`);
+}
+
+
+//changes the boards width or height by the given amount
+//width: boolean that says whether to change the width or height
+//amount: amount to change the given board dimension by 
+function changeCanvasSize (width, amount){ 
+	if (width == true){
+		boardWidth += amount;
+		if (boardWidth > 32){
+			boardWidth = 32;
+		}else if (boardWidth < 1){
+			boardWidth = 1;
+		}
+	}else{
+		boardHeight += amount;
+		if (boardHeight > 32){
+			boardHeight = 32;
+		}else if (boardHeight < 1){
 			boardHeight = 1;
 		}
-		PS.gridSize(boardWidth, boardHeight);
-		PS.gridColor( 0x909090 );
-		PS.statusText(`Changed canvas size: ${boardWidth}x${boardHeight}`);
 	}
-	//change the current color if they press any number between 1-8
-	else if (key == BLACK){
+	PS.gridSize(boardWidth, boardHeight);
+	PS.gridColor( 0x303030 );
+	PS.statusColor( PS.COLOR_WHITE );
+	PS.statusText(`Changed Canvas Size: ${boardWidth}x${boardHeight}`);
+};
+
+//change the current color if the given key is any number between 1-8
+function changeColor(key){
+	if (key == BLACK){
 		PS.statusText( "Changed Color: Black" );		//display new text showing what color they are now using
 		currentColor = PS.COLOR_BLACK	//change the currently used color value
 	}
@@ -222,7 +244,12 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 		PS.statusText( "Changed Color: Violet" );
 		currentColor = PS.COLOR_VIOLET
 	}
-};
+	else if (key == GRAY){
+		PS.statusText( "Changed Color: Gray" );
+		currentColor = PS.COLOR_GRAY
+	}
+}
+
 
 /*
 PS.keyUp ( key, shift, ctrl, options )
