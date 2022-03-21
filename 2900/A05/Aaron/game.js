@@ -57,8 +57,7 @@ PS.touch = function( x, y) { //x and y are coords of mouse click.
 	myTimer = PS.timerStart(2, ripple, x, y, randColor);
 	};
 
-	PS.debug("count is " + count + "\n" +
-		"PS.touch() @ " + x + ", " + y + "\n");
+	//PS.debug("count is " + count + "\n" +	"PS.touch() @ " + x + ", " + y + "\n");
 
 	PS.audioPlay("piano_d4"); //modded: plays piano now
 
@@ -66,9 +65,9 @@ PS.touch = function( x, y) { //x and y are coords of mouse click.
 }
 var ripple = function(x,y,randColor){ //modded: now makes a ripple of beads that change color in the 4 cardinal directions
 	count+=1; //count up by 1
-	PS.debug("count is " + count + "\n");
+	//PS.debug("count is " + count + "\n");
 	if(count>32){
-		PS.debug("count is " + count + "\n");
+		//PS.debug("count is " + count + "\n");
 		PS.timerStop( myTimer );
 		myTimer = null;
 		count = 0;
