@@ -64,7 +64,7 @@ var radius = 0;
 var radiusRange = 0;
 
 var painting = false;
-
+var seed = null; //seed is now global so that PS.touch can access it
 PS.init = function( system, options ) {
 	// Uncomment the following code line
 	// to verify operation:
@@ -97,7 +97,7 @@ PS.init = function( system, options ) {
 	PS.gridSize( gridWidth, gridHeight ); // set initial size
 	PS.alpha(0, 0, 0);
 	PS.borderAlpha(0,0,0);
- 	PS.statusText( "Touch a bead to enter your name" );
+	PS.statusText( "Press space" );
 };
 
 /*
@@ -120,8 +120,25 @@ PS.touch = function( x, y, data, options ) {
 	// over a bead.
 	painting = true;
 	//paint current bead
-	PS.color( x, y, PS.COLOR_WHITE ); // set color to currentColor
-	PS.data( x, y, PS.COLOR_WHITE );  // set data to color value
+
+	PS.seed(seed*PS.random(20)); //makes it not the same color every time
+	r = PS.random(255);
+	rRange = PS.random(150) + 50;
+
+	g = PS.random(255);
+	gRange = PS.random(100) + 50;
+
+	b = PS.random(255);
+	bRange = PS.random(150) + 50;
+
+	var rTemp2 = r + (PS.random(rRange*2) - rRange);
+	var gTemp2 = g + (PS.random(gRange*2) - gRange);
+	var bTemp2 = b + (PS.random(bRange*2) - bRange);
+	PS.color( x, y, rTemp2, gTemp2, bTemp2 );// set bead color
+	PS.data( x, y, [rTemp2, gTemp2, bTemp2]);  // set data to color value
+
+	//PS.color( x, y, PS.COLOR_WHITE ); // set color to currentColor
+	//PS.data( x, y, PS.COLOR_WHITE );  // set data to color value
 };
 
 function resetAlpha(){
@@ -159,9 +176,9 @@ function randomizeBoard(seed){
 
 	for (let i = 0; i < gridWidth; i++ ){
 		for (let j = 0; j < gridHeight; j++){
-			var rTemp = r + (PS.random(rRange*2) - rRange)
-        	var gTemp = g + (PS.random(gRange*2) - gRange)
-        	var bTemp = b + (PS.random(bRange*2) - bRange)
+			var rTemp = r + (PS.random(rRange*2) - rRange);
+			var gTemp = g + (PS.random(gRange*2) - gRange);
+			var bTemp = b + (PS.random(bRange*2) - bRange);
 			PS.color( i, j, rTemp, gTemp, bTemp ); // set bead color
 		}
 	}
@@ -191,7 +208,7 @@ function startAnimation(seed){
 			break;
 		case 2:
 			if (timer == null){
-				
+
 			}
 			break;
 	}
@@ -265,8 +282,13 @@ PS.enter = function( x, y, data, options ) {
 
 	// Add code here for when the mouse cursor/touch enters a bead.
 	if (painting){
-		PS.color( x, y, PS.COLOR_WHITE ); // set color to currentColor
-		PS.data( x, y, PS.COLOR_WHITE );  // set data to color value
+		PS.seed(seed*PS.random(30)); //makes it not the same color every time
+
+		var rTemp2 = r + (PS.random(rRange*2) - rRange);
+		var gTemp2 = g + (PS.random(gRange*2) - gRange);
+		var bTemp2 = b + (PS.random(bRange*2) - bRange);
+		PS.color( x, y, rTemp2, gTemp2, bTemp2 ); // set color to currentColor
+		PS.data( x, y, [rTemp2, gTemp2, bTemp2] );  // set data to color value
 	}
 };
 
@@ -320,10 +342,11 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 	PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
 	if (key == 32){ //space bar
-		PS.statusInput( "Name:", function ( result ) {
+		PS.statusInput( "Name your piece: ", function ( result ) {
 			text = result;
-			var seed = generateSeed(text);
-			PS.statusText( "Welcome, " + seed + "!" );
+			seed = generateSeed(text);
+			//PS.statusText( "Seed: " + seed );
+			PS.statusText( "Painting title: " + text );
 			changeBoardSize(seed);
 			resetAlpha();
 			randomizeBoard(seed);
@@ -371,4 +394,3 @@ PS.input = function( sensors, options ) {
 
 	// Add code here for when an input event is detected.
 };
-
