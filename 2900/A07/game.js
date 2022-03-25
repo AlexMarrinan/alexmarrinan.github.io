@@ -63,7 +63,11 @@ var gRange = 0;
 var radius = 0;
 var radiusRange = 0;
 
+var brushSize = 1;
+
+var started = false;
 var painting = false;
+
 var seed = null; //seed is now global so that PS.touch can access it
 PS.init = function( system, options ) {
 	// Uncomment the following code line
@@ -120,34 +124,26 @@ PS.touch = function( x, y, data, options ) {
 		textPrompt();
 		return;
 	}
+	
+	if (x == 0 && y == gridHeight-1){
+		changeBrushSize();
+		return;
+	}
 	// Add code here for mouse clicks/touches
 	// over a bead.
 	painting = true;
-	//paint current bead
-
-	PS.seed(seed*PS.random(20)); //makes it not the same color every time
-	r = PS.random(255);
-	rRange = PS.random(150) + 50;
-
-	g = PS.random(255);
-	gRange = PS.random(100) + 50;
-
-	b = PS.random(255);
-	bRange = PS.random(150) + 50;
-
-	var rTemp2 = r + (PS.random(rRange*2) - rRange);
-	var gTemp2 = g + (PS.random(gRange*2) - gRange);
-	var bTemp2 = b + (PS.random(bRange*2) - bRange);
-	PS.color( x, y, rTemp2, gTemp2, bTemp2 );// set bead color
-	PS.data( x, y, [rTemp2, gTemp2, bTemp2]);  // set data to color value
+	PS.seed(seed*PS.random(30)); //makes it not the same color every time
+	paint(x, y);
 
 	//PS.color( x, y, PS.COLOR_WHITE ); // set color to currentColor
 	//PS.data( x, y, PS.COLOR_WHITE );  // set data to color value
 };
 function textPrompt(){
+	started = false;
 	PS.statusInput( "Name your piece: ", function ( result ) {
 		text = result;
 		seed = generateSeed(text);
+		started = true;
 		//PS.statusText( "Seed: " + seed );
 		PS.statusText( "Painting title: " + text );
 		changeBoardSize(seed);
@@ -155,6 +151,7 @@ function textPrompt(){
 		randomizeBoard(seed);
 		changeBeadRadius(seed);
 		makeResetButton();
+		makeBrushButton();
 	} );
 }
 function resetAlpha(){
@@ -215,9 +212,75 @@ function changeBeadRadius(seed){
 		}
 	}
 }
+function makeBrushButton(){
+	PS.color(0, gridHeight-1, PS.COLOR_BLACK);
+	PS.glyph(0, gridHeight-1,  brushSize.toString());
+	PS.glyphColor(0, gridHeight-1, PS.COLOR_WHITE);
+}
 function makeResetButton(){
 	PS.color(gridWidth-1, gridHeight-1, PS.COLOR_RED);
 	PS.glyph(gridWidth-1, gridHeight-1, '?');
+}
+function changeBrushSize(){
+	switch(brushSize){
+		case 1:
+			brushSize = 3;
+			PS.glyph(0, gridHeight-1, "3");
+			break;
+		case 3:
+			brushSize = 5;
+			PS.glyph(0, gridHeight-1, "5");
+			break;
+		case 5:
+			brushSize = 1;
+			PS.glyph(0, gridHeight-1, "1");
+			break;
+	}
+}
+function paint(x, y){
+	//paint current bead
+	r = PS.random(255);
+	rRange = PS.random(150) + 50;
+
+	g = PS.random(255);
+	gRange = PS.random(100) + 50;
+
+	b = PS.random(255);
+	bRange = PS.random(150) + 50;
+	var xMin = x;
+	var xMax = x+1;
+	var yMin = y;
+	var yMax = y+1;
+
+	if (brushSize == 3){
+		xMin -= 1;
+		yMin -= 1;
+		xMax += 1;
+		yMax += 1;
+	}
+	if (brushSize == 5){
+		xMin -= 2;
+		yMin -= 2;
+		xMax += 2;
+		yMax += 2;
+	}
+	for (let i = xMin; i < xMax; i++){
+		for (let j = yMin; j < yMax; j++){
+			//PS.debug(i + ", " + j + "\n");
+			if (i < 0 || i > gridWidth-1 || j < 0 || j > gridHeight-1){
+				continue;
+			}
+			if((i == 0 && j == gridHeight-1 ) || (i == gridWidth-1 && j == gridHeight-1)) {
+				continue;
+			}else{
+				var rTemp2 = r + (PS.random(rRange*2) - rRange);
+				var gTemp2 = g + (PS.random(gRange*2) - gRange);
+				var bTemp2 = b + (PS.random(bRange*2) - bRange);
+				PS.color( i, j, rTemp2, gTemp2, bTemp2 );// set bead color
+			}
+		}
+	}
+	PS.data( x, y, [rTemp2, gTemp2, bTemp2]);  // set data to color value
 }
 /*
 function startAnimation(seed){
@@ -307,17 +370,19 @@ PS.enter = function( x, y, data, options ) {
 	// PS.debug( "PS.enter() @ " + x + ", " + y + "\n" );
 
 	// Add code here for when the mouse cursor/touch enters a bead.
-	if (x == gridWidth - 1 && y == gridHeight - 1){
+	if (!started){
 		return;
 	}
-
+	if (x == gridWidth - 1 && y == gridHeight - 1){
+		PS.statusText("Make new painting");
+		return;
+	}
+	if (x == 0 && y == gridHeight - 1){
+		PS.statusText("Change brush size");
+		return;
+	}
 	if (painting){
-		PS.seed(seed*PS.random(30)); //makes it not the same color every time
-		var rTemp2 = r + (PS.random(rRange*2) - rRange);
-		var gTemp2 = g + (PS.random(gRange*2) - gRange);
-		var bTemp2 = b + (PS.random(bRange*2) - bRange);
-		PS.color( x, y, rTemp2, gTemp2, bTemp2 ); // set color to currentColor
-		PS.data( x, y, [rTemp2, gTemp2, bTemp2] );  // set data to color value
+		paint(x, y)
 	}
 };
 
@@ -333,9 +398,18 @@ This function doesn't have to do anything. Any value returned is ignored.
 
 PS.exit = function( x, y, data, options ) {
 	// Uncomment the following code line to inspect x/y parameters:
-
+	if (!started){
+		return;
+	}
 	// PS.debug( "PS.exit() @ " + x + ", " + y + "\n" );
-
+	if (x == gridWidth - 1 && y == gridHeight - 1){
+		PS.statusText( "Painting title: " + text );
+		return;
+	}
+	if (x == 0 && y == gridHeight - 1){
+		PS.statusText( "Painting title: " + text );
+		return;
+	}
 	// Add code here for when the mouse cursor/touch exits a bead.
 };
 
@@ -368,11 +442,8 @@ This function doesn't have to do anything. Any value returned is ignored.
 PS.keyDown = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
 
-	PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
+	//PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
-	if (key == 32){ //space bar
-
-	}
 	// Add code here for when a key is pressed.
 };
 
