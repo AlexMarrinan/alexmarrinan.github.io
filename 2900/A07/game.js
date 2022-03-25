@@ -97,7 +97,7 @@ PS.init = function( system, options ) {
 	PS.gridSize( gridWidth, gridHeight ); // set initial size
 	PS.alpha(0, 0, 0);
 	PS.borderAlpha(0,0,0);
-	PS.statusText( "Press space" );
+	textPrompt();
 };
 
 /*
@@ -116,6 +116,10 @@ PS.touch = function( x, y, data, options ) {
 
 	// PS.debug( "PS.touch() @ " + x + ", " + y + "\n" );
 
+	if (x == gridWidth-1 && y == gridHeight-1){
+		textPrompt();
+		return;
+	}
 	// Add code here for mouse clicks/touches
 	// over a bead.
 	painting = true;
@@ -140,7 +144,19 @@ PS.touch = function( x, y, data, options ) {
 	//PS.color( x, y, PS.COLOR_WHITE ); // set color to currentColor
 	//PS.data( x, y, PS.COLOR_WHITE );  // set data to color value
 };
-
+function textPrompt(){
+	PS.statusInput( "Name your piece: ", function ( result ) {
+		text = result;
+		seed = generateSeed(text);
+		//PS.statusText( "Seed: " + seed );
+		PS.statusText( "Painting title: " + text );
+		changeBoardSize(seed);
+		resetAlpha();
+		randomizeBoard(seed);
+		changeBeadRadius(seed);
+		makeResetButton();
+	} );
+}
 function resetAlpha(){
 	for (let i = 0; i < gridWidth; i++ ){
 		for (let j = 0; j < gridHeight; j++){
@@ -182,6 +198,12 @@ function randomizeBoard(seed){
 			PS.color( i, j, rTemp, gTemp, bTemp ); // set bead color
 		}
 	}
+	PS.gridColor(r, g, b);
+	if (r < 100 || g < 100 || b < 100){
+		PS.statusColor(PS.COLOR_WHITE);
+	}else{
+		PS.statusColor(PS.COLOR_BLACK);
+	}
 }
 function changeBeadRadius(seed){
 	PS.seed(seed);
@@ -192,6 +214,10 @@ function changeBeadRadius(seed){
 			PS.radius(i, j, radius + PS.random(radiusRange*2) - radiusRange);
 		}
 	}
+}
+function makeResetButton(){
+	PS.color(gridWidth-1, gridHeight-1, PS.COLOR_RED);
+	PS.glyph(gridWidth-1, gridHeight-1, '?');
 }
 /*
 function startAnimation(seed){
@@ -281,9 +307,12 @@ PS.enter = function( x, y, data, options ) {
 	// PS.debug( "PS.enter() @ " + x + ", " + y + "\n" );
 
 	// Add code here for when the mouse cursor/touch enters a bead.
+	if (x == gridWidth - 1 && y == gridHeight - 1){
+		return;
+	}
+
 	if (painting){
 		PS.seed(seed*PS.random(30)); //makes it not the same color every time
-
 		var rTemp2 = r + (PS.random(rRange*2) - rRange);
 		var gTemp2 = g + (PS.random(gRange*2) - gRange);
 		var bTemp2 = b + (PS.random(bRange*2) - bRange);
@@ -342,16 +371,7 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 	PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
 	if (key == 32){ //space bar
-		PS.statusInput( "Name your piece: ", function ( result ) {
-			text = result;
-			seed = generateSeed(text);
-			//PS.statusText( "Seed: " + seed );
-			PS.statusText( "Painting title: " + text );
-			changeBoardSize(seed);
-			resetAlpha();
-			randomizeBoard(seed);
-			changeBeadRadius(seed);
-		} );
+
 	}
 	// Add code here for when a key is pressed.
 };
