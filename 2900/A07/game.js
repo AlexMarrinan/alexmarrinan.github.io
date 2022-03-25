@@ -236,6 +236,7 @@ function changeBrushSize(){
 			PS.glyph(0, gridHeight-1, "1");
 			break;
 	}
+	PS.statusText( "Changed brush size: " + brushSize);
 }
 function paint(x, y){
 	//paint current bead
