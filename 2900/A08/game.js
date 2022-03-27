@@ -56,6 +56,10 @@ var r = 0;
 var g = 0;
 var b = 0;
 
+var rOriginal = 0;
+var gOriginal = 0;
+var bOriginal = 0;
+
 var rRange = 0;
 var bRange = 0;
 var gRange = 0;
@@ -65,8 +69,12 @@ var radiusRange = 0;
 
 var brushSize = 1;
 
+var tickCount = 0;
+
 var started = false;
 var painting = false;
+
+var timer;
 
 var seed = null; //seed is now global so that PS.touch can access it
 PS.init = function( system, options ) {
@@ -120,8 +128,13 @@ PS.touch = function( x, y, data, options ) {
 
 	// PS.debug( "PS.touch() @ " + x + ", " + y + "\n" );
 
+	if (!started){
+		return;
+	}
 	if (x == gridWidth-1 && y == gridHeight-1){
-		textPrompt();
+		started = false;
+		tickCount = 64;
+		timer = PS.timerStart(1, fadeOut);
 		return;
 	}
 	
@@ -143,21 +156,23 @@ function textPrompt(){
 	PS.statusInput( "Name your piece: ", function ( result ) {
 		text = result;
 		seed = generateSeed(text);
-		started = true;
+		//started = true;
 		//PS.statusText( "Seed: " + seed );
 		PS.statusText( "Painting title: " + text );
 		changeBoardSize(seed);
-		resetAlpha();
 		randomizeBoard(seed);
 		changeBeadRadius(seed);
 		makeResetButton();
 		makeBrushButton();
+		resetAlpha();
+		tickCount = 64;
+		timer = PS.timerStart(1, fadeIn);
 	} );
 }
 function resetAlpha(){
 	for (let i = 0; i < gridWidth; i++ ){
 		for (let j = 0; j < gridHeight; j++){
-			PS.alpha(i, j, 255);
+			PS.alpha(i, j, 0);
 		}
 	}
 }
@@ -195,6 +210,9 @@ function randomizeBoard(seed){
 			PS.color( i, j, rTemp, gTemp, bTemp ); // set bead color
 		}
 	}
+	rOriginal = r;
+	bOriginal = b;
+	gOriginal = g;
 	PS.gridColor(r, g, b);
 	if (r < 100 || g < 100 || b < 100){
 		PS.statusColor(PS.COLOR_WHITE);
@@ -220,19 +238,23 @@ function makeBrushButton(){
 function makeResetButton(){
 	PS.color(gridWidth-1, gridHeight-1, PS.COLOR_RED);
 	PS.glyph(gridWidth-1, gridHeight-1, '?');
+	PS.glyphColor(gridWidth-1, gridHeight-1, PS.COLOR_WHITE);
 }
 function changeBrushSize(){
 	switch(brushSize){
 		case 1:
 			brushSize = 3;
+			PS.audioPlay( "fx_pop" , {volume: 0.75} );
 			PS.glyph(0, gridHeight-1, "3");
 			break;
 		case 3:
 			brushSize = 5;
+			PS.audioPlay( "fx_pop" , {volume: 0.75} );
 			PS.glyph(0, gridHeight-1, "5");
 			break;
 		case 5:
 			brushSize = 1;
+			PS.audioPlay( "fx_pop" , {volume: 0.75} );
 			PS.glyph(0, gridHeight-1, "1");
 			break;
 	}
@@ -281,7 +303,40 @@ function paint(x, y){
 			}
 		}
 	}
+
 	PS.data( x, y, [rTemp2, gTemp2, bTemp2]);  // set data to color value
+}
+
+function fadeOut(){
+	for (let i = 0; i < gridWidth; i++){
+		for (let j = 0; j < gridHeight; j++){
+			PS.alpha( i, j, tickCount*4); // set bead color
+			PS.borderAlpha(i,j,tickCount*4);
+			PS.gridColor(rOriginal+(255-tickCount*4), gOriginal+(255-tickCount*4), bOriginal+(255-tickCount*4));
+		}
+	}
+	tickCount -= 1;
+	//PS.debug(tickCount+"\n");
+	if (tickCount < 0){
+		PS.timerStop(timer);
+		PS.statusColor(PS.COLOR_BLACK);
+		textPrompt();
+	}
+}
+function fadeIn(){
+	for (let i = 0; i < gridWidth; i++){
+		for (let j = 0; j < gridHeight; j++){
+			PS.alpha( i, j, 255-tickCount*4); // set bead color
+			PS.borderAlpha(i,j,255-tickCount*4);
+			PS.gridColor(rOriginal+tickCount*4, gOriginal+tickCount*4, bOriginal+tickCount*4);
+		}
+	}
+	tickCount -= 1;
+	//PS.debug(tickCount+"\n");
+	if (tickCount < 0){
+		PS.timerStop(timer);
+		started = true;
+	}
 }
 /*
 function startAnimation(seed){
@@ -315,6 +370,8 @@ function fadeUp(){
 				PS.alpha( i, j, alpha); // set bead color
 			}
 		}
+
+		
 	}else{
 		for (let i = 0; i < gridWidth; i++ ){
 			for (let j = 0; j < gridHeight; j++){
