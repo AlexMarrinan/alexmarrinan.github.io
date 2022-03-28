@@ -175,7 +175,6 @@ function textPrompt(){
 		makeResetButton();
 		makeBrushButton();
 		tickCount = 64;
-		started = true;
 		//timer = PS.timerStart(1, fadeIn);
 	} );
 }
@@ -201,10 +200,13 @@ function changeBoardSize(seed){
 	gridHeight = PS.random(31)+1;
 	PS.gridSize(gridWidth, gridHeight);
 	PS.gridFade(30);
-	PS.fade( PS.ALL, PS.ALL, 30);
+	PS.fade( PS.ALL, PS.ALL, 30,  {onEnd: allowPainting});
 	PS.borderFade( PS.ALL, PS.ALL, 30); 
 	PS.statusFade(30);
 	PS.borderAlpha(PS.ALL, PS.ALL, 255);
+}
+function allowPainting(){
+	started = true;
 }
 function randomizeBoard(seed){
 	PS.seed(seed);
@@ -317,7 +319,6 @@ function paint(x, y){
 			}
 		}
 	}
-
 	PS.audioLoad("paint"+(PS.random(10)-1).toString(), {autoplay: true, path: "audio/"});
 	PS.data( x, y, [rTemp2, gTemp2, bTemp2]);  // set data to color value
 }
