@@ -319,7 +319,7 @@ function paint(x, y){
 			}
 		}
 	}
-	PS.audioPlay("fx_drip2", {volume: 0.3});
+	PS.audioPlay("fx_drip2", {volume: 0.15});
 	PS.data( x, y, [rTemp2, gTemp2, bTemp2]);  // set data to color value
 }
 /*
