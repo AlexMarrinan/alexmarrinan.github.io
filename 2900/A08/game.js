@@ -135,7 +135,7 @@ PS.touch = function( x, y, data, options ) {
 		started = false;
 		var gridCount = gridHeight * gridWidth;
 		tickCount = 64;
-
+		PS.audioPlay("perc_drum_tom4", {volume: 0.3});
 		PS.gridFade(30);
 		PS.fade( PS.ALL, PS.ALL, 30, {onEnd: textPrompt}); 
 		PS.borderFade( PS.ALL, PS.ALL, 30); 
@@ -169,6 +169,7 @@ function textPrompt(){
 		//started = true;
 		//PS.statusText( "Seed: " + seed );
 		PS.statusText( "Painting title: " + text );
+		PS.audioPlay("perc_hihat_closed", {volume: 0.3});
 		//resetAlpha();
 		changeBoardSize(seed);
 		randomizeBoard(seed);
@@ -257,20 +258,18 @@ function makeResetButton(){
 	PS.glyphColor(gridWidth-1, gridHeight-1, PS.COLOR_WHITE);
 }
 function changeBrushSize(){
+	PS.audioPlay( "fx_pop" , {volume: 0.25} );
 	switch(brushSize){
 		case 1:
 			brushSize = 3;
-			PS.audioPlay( "fx_pop" , {volume: 0.75} );
 			PS.glyph(0, gridHeight-1, "3");
 			break;
 		case 3:
 			brushSize = 5;
-			PS.audioPlay( "fx_pop" , {volume: 0.75} );
 			PS.glyph(0, gridHeight-1, "5");
 			break;
 		case 5:
 			brushSize = 1;
-			PS.audioPlay( "fx_pop" , {volume: 0.75} );
 			PS.glyph(0, gridHeight-1, "1");
 			break;
 	}
@@ -278,6 +277,7 @@ function changeBrushSize(){
 }
 function paint(x, y){
 	//paint current bead
+	PS.fade( PS.ALL, PS.ALL, 0);
 	r = PS.random(255);
 	rRange = PS.random(150) + 50;
 
@@ -319,92 +319,9 @@ function paint(x, y){
 			}
 		}
 	}
-
+	PS.audioPlay("fx_drip2", {volume: 0.3});
 	PS.data( x, y, [rTemp2, gTemp2, bTemp2]);  // set data to color value
 }
-
-function fadeOut(){
-	for (let i = 0; i < gridWidth; i++){
-		for (let j = 0; j < gridHeight; j++){
-			PS.alpha( i, j, tickCount*4); // set bead color
-			PS.borderAlpha(i,j,tickCount*4);
-			PS.gridColor(rOriginal+(255-tickCount*4), gOriginal+(255-tickCount*4), bOriginal+(255-tickCount*4));
-		}
-	}
-	tickCount -= 1;
-	//PS.debug(tickCount+"\n");
-	if (tickCount < 0){
-		PS.timerStop(timer);
-		PS.statusColor(PS.COLOR_BLACK);
-		textPrompt();
-	}
-}
-function fadeIn(){
-	PS.alpha( PS.ALL, PS.ALL, 255-tickCount*4); // set bead color
-	PS.borderAlpha(PS.ALL,PS.ALL,255-tickCount*4);
-	PS.gridColor(rOriginal+tickCount*4, gOriginal+tickCount*4, bOriginal+tickCount*4);
-	tickCount -= 1;
-	//PS.debug(tickCount+"\n");
-	if (tickCount < 0){
-		PS.timerStop(timer);
-		started = true;
-	}
-}
-/*
-function startAnimation(seed){
-	PS.seed(seed);
-	animationIndex = PS.random(1);
-	if (timer != null){
-		PS.timerStop(timer);
-		timer = null;
-	}
-	switch(animationIndex){
-		case 0:
-			break;
-		case 1:
-			break;
-		case 2:
-			if (timer == null){
-
-			}
-			break;
-	}
-}*/
-
-/*
-function fadeUp(){
-	tickCount += 1;
-	PS.debug(tickCount + "\n");
-	if (tickCount <= 255){
-		for (let i = 0; i < gridWidth; i++ ){
-			for (let j = 0; j < gridHeight; j++){
-				var alpha = 255 - getColAlpha(tickCount);
-				PS.alpha( i, j, alpha); // set bead color
-			}
-		}
-
-		
-	}else{
-		for (let i = 0; i < gridWidth; i++ ){
-			for (let j = 0; j < gridHeight; j++){
-				var alpha = 255//getColAlpha(tickCount+j);
-				PS.alpha( i, j, alpha); // set bead color
-			}
-		}
-	}
-	if (tickCount > 255*2){
-		tickCount = 0;
-	}
-}
-function getRowAlpha(i){
-	var percent = i/gridWidth;
-	return 255*percent;
-}
-function getColAlpha(j){
-	var percent = j/gridHeight;
-	return 255*percent;
-}*/
-
 /*
 PS.release ( x, y, data, options )
 Called when the left mouse button is released, or when a touch is lifted, over bead(x, y).
