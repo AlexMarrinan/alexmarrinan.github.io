@@ -104,8 +104,6 @@ PS.init = function( system, options ) {
 	// PS.statusText( "Game" );
 
 	// Add any other initialization code you need here.
-
-
 	PS.gridSize( gridWidth, gridHeight ); // set initial size
 	//PS.alpha(0, 0, 0);
 	PS.borderAlpha(0,0,0);
@@ -319,7 +317,8 @@ function paint(x, y){
 			}
 		}
 	}
-	PS.audioPlay("fx_drip2", {volume: 0.15});
+
+	PS.audioLoad("paint"+(PS.random(10)-1).toString(), {autoplay: true, path: "audio/"});
 	PS.data( x, y, [rTemp2, gTemp2, bTemp2]);  // set data to color value
 }
 /*
