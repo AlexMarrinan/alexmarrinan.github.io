@@ -107,7 +107,7 @@ PS.init = function( system, options ) {
 
 
 	PS.gridSize( gridWidth, gridHeight ); // set initial size
-	PS.alpha(0, 0, 0);
+	//PS.alpha(0, 0, 0);
 	PS.borderAlpha(0,0,0);
 	textPrompt();
 };
@@ -133,8 +133,18 @@ PS.touch = function( x, y, data, options ) {
 	}
 	if (x == gridWidth-1 && y == gridHeight-1){
 		started = false;
+		var gridCount = gridHeight * gridWidth;
 		tickCount = 64;
-		timer = PS.timerStart(1, fadeOut);
+
+		PS.gridFade(30);
+		PS.fade( PS.ALL, PS.ALL, 30, {onEnd: textPrompt}); 
+		PS.borderFade( PS.ALL, PS.ALL, 30); 
+		PS.statusFade(30);
+		PS.borderAlpha(PS.ALL, PS.ALL, 0);
+		//timer = PS.timerStart(1, fadeOut);
+		PS.gridColor(PS.COLOR_WHITE);
+		PS.statusColor(PS.COLOR_BLACK);
+		PS.alpha(PS.ALL, PS.ALL, 0);
 		return;
 	}
 	
@@ -159,14 +169,15 @@ function textPrompt(){
 		//started = true;
 		//PS.statusText( "Seed: " + seed );
 		PS.statusText( "Painting title: " + text );
+		//resetAlpha();
 		changeBoardSize(seed);
 		randomizeBoard(seed);
 		changeBeadRadius(seed);
 		makeResetButton();
 		makeBrushButton();
-		resetAlpha();
 		tickCount = 64;
-		timer = PS.timerStart(1, fadeIn);
+		started = true;
+		//timer = PS.timerStart(1, fadeIn);
 	} );
 }
 function resetAlpha(){
@@ -190,6 +201,11 @@ function changeBoardSize(seed){
 	gridWidth = PS.random(31)+1;
 	gridHeight = PS.random(31)+1;
 	PS.gridSize(gridWidth, gridHeight);
+	PS.gridFade(30);
+	PS.fade( PS.ALL, PS.ALL, 30);
+	PS.borderFade( PS.ALL, PS.ALL, 30); 
+	PS.statusFade(30);
+	PS.borderAlpha(PS.ALL, PS.ALL, 255);
 }
 function randomizeBoard(seed){
 	PS.seed(seed);
@@ -324,13 +340,9 @@ function fadeOut(){
 	}
 }
 function fadeIn(){
-	for (let i = 0; i < gridWidth; i++){
-		for (let j = 0; j < gridHeight; j++){
-			PS.alpha( i, j, 255-tickCount*4); // set bead color
-			PS.borderAlpha(i,j,255-tickCount*4);
-			PS.gridColor(rOriginal+tickCount*4, gOriginal+tickCount*4, bOriginal+tickCount*4);
-		}
-	}
+	PS.alpha( PS.ALL, PS.ALL, 255-tickCount*4); // set bead color
+	PS.borderAlpha(PS.ALL,PS.ALL,255-tickCount*4);
+	PS.gridColor(rOriginal+tickCount*4, gOriginal+tickCount*4, bOriginal+tickCount*4);
 	tickCount -= 1;
 	//PS.debug(tickCount+"\n");
 	if (tickCount < 0){
