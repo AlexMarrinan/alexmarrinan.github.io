@@ -37,7 +37,26 @@ If you don't use JSHint (or are using it with a configuration file), you can saf
 /* globals PS : true */
 
 "use strict"; // Do NOT remove this directive!
+"user node";
 
+var gridWidth = 32;
+var gridHeight = 32;
+
+var playerX = 10
+var playerY = 12
+
+var playerSprite
+
+//tile ids
+let EMPTY = 0;
+let WALL = 1;
+let EXIT = 2;
+
+let WALL_COLOR = PS.COLOR_BLACK
+
+var fallTimer = null
+
+var beadData = Array(32*32).fill(0);
 /*
 PS.init( system, options )
 Called once after engine is initialized but before event-polling begins.
@@ -72,11 +91,63 @@ PS.init = function( system, options ) {
 	// Uncomment the following code line and
 	// change the string parameter as needed.
 
-	// PS.statusText( "Game" );
 
+	// PS.statusText( "Game" );
+	PS.gridSize( gridWidth, gridHeight ); // set initial size
+
+	playerSprite = PS.spriteSolid(1, 1);
+	PS.spriteMove(playerSprite, playerX, playerY);
+	//PS.alpha(0, 0, 0);
+	PS.border(PS.ALL,PS.ALL,0);
+	//PS.color(PS.ALL, PS.ALL, PS.COLOR_GRAY)
+	//PS.data(PS.ALL, PS.ALL, EMPTY);
+	PS.gridColor(PS.COLOR_CYAN)
+	initLevel();
 	// Add any other initialization code you need here.
 };
 
+function getBeadData(x, y){
+	return beadData[y*32 + x];
+}
+function setBeadData(x, y, data){
+	beadData[y*32 + x] = data;
+}
+function initLevel(index){
+	var myLoader;
+	// Image loading function
+	// Called when image loads successfully
+	// [data] parameter will contain imageData
+   
+	myLoader = function ( imageData ) {
+		var x, y, ptr, color;
+	   
+		// Report imageData in debugger
+	   
+		//PS.debug( "Loaded " + imageData.source +
+		//":\nid = " + imageData.id +
+		//"\nwidth = " + imageData.width +
+		//"\nheight = " + imageData.height +
+		//"\nformat = " + imageData.pixelSize + "\n" );
+	   
+		// Extract colors from imageData and
+		// assign them to the beads
+	   
+		ptr = 0; // init pointer into data array
+		for ( y = 0; y < gridWidth; y += 1 ) {
+			for ( x = 0; x < gridHeight; x += 1 ) {
+				color = imageData.data[ ptr ]; // get color
+				//PS.debug(color + "\n");
+				PS.color( x, y, color ); // assign to bead
+				if (color == 0) {
+					setBeadData(x, y, WALL);
+				}
+				//PS.data( x, y, color );
+				ptr += 1; // point to next value
+			}
+		}
+	};
+	PS.imageLoad( "images/level1.png", myLoader, 1 );
+}
 /*
 PS.touch ( x, y, data, options )
 Called when the left mouse button is clicked over bead(x, y), or when bead(x, y) is touched.
@@ -86,17 +157,23 @@ This function doesn't have to do anything. Any value returned is ignored.
 [data : *] = The JavaScript value previously associated with bead(x, y) using PS.data(); default = 0.
 [options : Object] = A JavaScript object with optional data properties; see API documentation for details.
 */
+function setWall(x, y){
+	var wallSprite = PS.spriteSolid(1, 1, PS.COLOR_BLACK);
+	PS.spriteMove(wallSprite, x, y);
+}
+
 
 PS.touch = function( x, y, data, options ) {
 	// Uncomment the following code line
 	// to inspect x/y parameters:
 
-	// PS.debug( "PS.touch() @ " + x + ", " + y + "\n" );
+	//PS.debug( "PS.touch() @ " + x + ", " + y + "\n" );
 
+	
 	// Add code here for mouse clicks/touches
 	// over a bead.
-};
 
+};
 /*
 PS.release ( x, y, data, options )
 Called when the left mouse button is released, or when a touch is lifted, over bead(x, y).
@@ -176,14 +253,62 @@ This function doesn't have to do anything. Any value returned is ignored.
 [options : Object] = A JavaScript object with optional data properties; see API documentation for details.
 */
 
+let UP_KEY = 1006
+let DOWN_KEY = 1008
+let LEFT_KEY = 1005
+let RIGHT_KEY = 1007
+
 PS.keyDown = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
 
-	// PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
+	//PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
+	switch (key){
+		/*case UP_KEY:
+			PS.debug("UP\n");
+			movePlayer(playerX, playerY - 1);
+			break;
+		case DOWN_KEY:
+			PS.debug("DOWN\n");
+			movePlayer(playerX, playerY + 1);
+			break;	*/
+		case LEFT_KEY:
+			//PS.debug("lEFT\n");
+			movePlayer(playerX - 1, playerY);
+			break;
+		case RIGHT_KEY:
+			//PS.debug("RIGHT\n");
+			movePlayer(playerX + 1, playerY);
+			break;
+	}
 	// Add code here for when a key is pressed.
 };
 
+
+function movePlayer(x, y){
+
+	if (fallTimer != null){
+		PS.timerStop(fallTimer);
+		fallTimer = null;
+	}
+
+	if (y >= gridWidth){
+		y = 0;
+	}
+	//TODO: make array of data instead of reading bead data
+	if (x >= 0 && x < gridWidth && y >= 0 && getBeadData(x, y) != WALL){
+		PS.color(playerX, playerY, PS.COLOR_WHITE);
+		PS.color(x, y, PS.COLOR_GREEN);
+		playerX = x;
+		playerY = y;
+	}
+	if (!playerOnGround()){
+		fallTimer = PS.timerStart(4, movePlayer, playerX, playerY+1);
+	}
+}
+function playerOnGround(){
+	return getBeadData(playerX, playerY + 1) === WALL;
+}
 /*
 PS.keyUp ( key, shift, ctrl, options )
 Called when a key on the keyboard is released.
