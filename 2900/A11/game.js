@@ -393,6 +393,7 @@ function rotateImage(clockwise){
 		}
 	}
 	//This chunk accounts fixes the bug where the players old position would get set to empty color
+	
 	var newColor;
 	PS.debug(oldX + ", " + oldY + " OLD\n")
 	PS.debug(getBeadData(oldX, oldY) + "\n");
