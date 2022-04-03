@@ -52,6 +52,7 @@ let EMPTY = 0;
 let WALL = 1;
 let EXIT = 2;
 let START = 3;
+let SPIKE = 4;
 
 let WALL_COLOR = PS.COLOR_BLACK
 
@@ -104,7 +105,7 @@ PS.init = function( system, options ) {
 	PS.border(PS.ALL,PS.ALL,0);
 	//PS.color(PS.ALL, PS.ALL, PS.COLOR_GRAY)
 	//PS.data(PS.ALL, PS.ALL, EMPTY);
-	PS.gridColor(PS.COLOR_CYAN)
+	PS.gridColor(PS.COLOR_CYAN)	
 	initLevel();
 	// Add any other initialization code you need here.
 };
@@ -153,6 +154,11 @@ function initLevel(index){
 					//PS.debug("Got yellow!\n");
 					PS.color( x, y, PS.COLOR_YELLOW ); // assign to bead
 					setBeadData(x, y, EXIT);
+				}
+				else if (color == 16711680){ //red
+					//PS.debug("Got yellow!\n");
+					PS.color( x, y, PS.COLOR_RED ); // assign to bead
+					setBeadData(x, y, SPIKE);
 				}
 				//PS.data( x, y, color );
 				ptr += 1; // point to next value
@@ -333,10 +339,17 @@ function movePlayer(x, y){
 			case EXIT:
 				oldColor = PS.COLOR_YELLOW;
 				break;
+			case SPIKE:
+				oldColor = PS.COLOR_RED;
+				break;
 		}
 	}
 	if (getBeadData(playerX, playerY) == EXIT){
 		PS.statusText("Level Complete!\n");
+		completed = true;
+	}
+	if (getBeadData(playerX, playerY) == SPIKE){
+		PS.statusText("You died! Level failed!\n");
 		completed = true;
 	}
 	if (!playerOnGround()){
@@ -389,14 +402,18 @@ function rotateImage(clockwise){
 					PS.color( x, y, PS.COLOR_GRAY ); // assign to bead
 					setBeadData(x,y, START);
 					break;
+				case SPIKE:
+					PS.color( x, y, PS.COLOR_RED); // assign to bead
+					setBeadData(x,y, SPIKE);
+					break;
 			}
 		}
 	}
 	//This chunk accounts fixes the bug where the players old position would get set to empty color
-	
+
 	var newColor;
-	PS.debug(oldX + ", " + oldY + " OLD\n")
-	PS.debug(getBeadData(oldX, oldY) + "\n");
+	//PS.debug(oldX + ", " + oldY + " OLD\n")
+	//PS.debug(getBeadData(oldX, oldY) + "\n");
 	switch(getBeadData(oldX, oldY)){
 		case EMPTY:
 			newColor = PS.COLOR_WHITE;
@@ -409,6 +426,9 @@ function rotateImage(clockwise){
 			break;
 		case EXIT:
 			oldColor = PS.COLOR_YELLOW;
+			break;
+		case SPIKE:
+			oldColor = PS.COLOR_RED;
 			break;
 	}
 	PS.color(oldX, oldY, newColor);
