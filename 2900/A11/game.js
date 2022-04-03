@@ -315,7 +315,6 @@ function movePlayer(x, y){
 	if (y >= gridWidth){
 		y = 0;
 	}
-	//TODO: make array of data instead of reading bead data
 	if (x >= 0 && x < gridWidth && y >= 0 && getBeadData(x, y) != WALL){
 		PS.color(playerX, playerY, oldColor);
 		PS.color(x, y, PS.COLOR_GREEN);
@@ -352,9 +351,9 @@ function rotateImage(clockwise){
 	if (!playerOnGround() || completed){
 		return
 	}
-	/*let oldX = playerX;
+	let oldX = playerX;
 	let oldY = playerY;
-	let oldData = getBeadData(playerX, playerY);*/
+
 	var newBeadData = createAndFillTwoDArray({rows:gridHeight, columns:gridWidth, defaultValue: 0})
 
 	//record new rotated bead data
@@ -369,7 +368,7 @@ function rotateImage(clockwise){
 			}
 		}
 	}
-	
+	//TODO: fix big where the tile the player was previously on stays white on rotate
 	for (let y = 0; y < gridWidth; y += 1 ) {
 		for (let x = 0; x < gridHeight; x += 1 ) {
 			switch (newBeadData[x][y]){
@@ -393,14 +392,11 @@ function rotateImage(clockwise){
 			}
 		}
 	}
-	if (clockwise){
-		movePlayer(gridHeight - playerY - 1, playerX);
-	}else{
-		movePlayer(playerY, gridWidth - playerX - 1);
-	}
-	/*
+	//This chunk accounts fixes the bug where the players old position would get set to empty color
 	var newColor;
-	switch(oldData){
+	PS.debug(oldX + ", " + oldY + " OLD\n")
+	PS.debug(getBeadData(oldX, oldY) + "\n");
+	switch(getBeadData(oldX, oldY)){
 		case EMPTY:
 			newColor = PS.COLOR_WHITE;
 			break;
@@ -414,7 +410,14 @@ function rotateImage(clockwise){
 			oldColor = PS.COLOR_YELLOW;
 			break;
 	}
-	PS.color(oldX, oldY, newColor);*/
+	PS.color(oldX, oldY, newColor);
+
+	if (clockwise){
+		movePlayer(gridHeight - playerY - 1, playerX);
+	}else{
+		movePlayer(playerY, gridWidth - playerX - 1);
+	}
+
 }
 
 function createAndFillTwoDArray({rows, columns, defaultValue}){
