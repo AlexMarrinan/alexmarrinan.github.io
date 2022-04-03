@@ -51,12 +51,16 @@ var playerSprite
 let EMPTY = 0;
 let WALL = 1;
 let EXIT = 2;
+let START = 3;
 
 let WALL_COLOR = PS.COLOR_BLACK
 
 var fallTimer = null
 
 var beadData = Array(32*32).fill(0);
+
+var oldColor = PS.COLOR_GRAY
+var completed = false;
 /*
 PS.init( system, options )
 Called once after engine is initialized but before event-polling begins.
@@ -95,8 +99,7 @@ PS.init = function( system, options ) {
 	// PS.statusText( "Game" );
 	PS.gridSize( gridWidth, gridHeight ); // set initial size
 
-	playerSprite = PS.spriteSolid(1, 1);
-	PS.spriteMove(playerSprite, playerX, playerY);
+
 	//PS.alpha(0, 0, 0);
 	PS.border(PS.ALL,PS.ALL,0);
 	//PS.color(PS.ALL, PS.ALL, PS.COLOR_GRAY)
@@ -133,20 +136,30 @@ function initLevel(index){
 		// assign them to the beads
 	   
 		ptr = 0; // init pointer into data array
-		for ( y = 0; y < gridWidth; y += 1 ) {
-			for ( x = 0; x < gridHeight; x += 1 ) {
+		for ( y = 0; y < gridHeight; y += 1 ) {
+			for ( x = 0; x < gridWidth; x += 1 ) {
 				color = imageData.data[ ptr ]; // get color
 				//PS.debug(color + "\n");
 				PS.color( x, y, color ); // assign to bead
-				if (color == 0) {
+				if (color == 0) {//black
 					setBeadData(x, y, WALL);
+				}else if (color == 5046016){ //green
+					//PS.color( x, y, PS.COLOR_GRAY ); // assign to bead
+					setBeadData(x, y, START);
+					playerX = x;
+					playerY = y;
+				}
+				else if (color == 16766976){ //yellow
+					//PS.debug("Got yellow!\n");
+					PS.color( x, y, PS.COLOR_YELLOW ); // assign to bead
+					setBeadData(x, y, EXIT);
 				}
 				//PS.data( x, y, color );
 				ptr += 1; // point to next value
 			}
 		}
 	};
-	PS.imageLoad( "images/level1.png", myLoader, 1 );
+	PS.imageLoad( "images/level0.png", myLoader, 1 );
 }
 /*
 PS.touch ( x, y, data, options )
@@ -157,11 +170,6 @@ This function doesn't have to do anything. Any value returned is ignored.
 [data : *] = The JavaScript value previously associated with bead(x, y) using PS.data(); default = 0.
 [options : Object] = A JavaScript object with optional data properties; see API documentation for details.
 */
-function setWall(x, y){
-	var wallSprite = PS.spriteSolid(1, 1, PS.COLOR_BLACK);
-	PS.spriteMove(wallSprite, x, y);
-}
-
 
 PS.touch = function( x, y, data, options ) {
 	// Uncomment the following code line
@@ -296,6 +304,9 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 
 function movePlayer(x, y){
 
+	if (completed){
+		return;
+	}
 	if (fallTimer != null){
 		PS.timerStop(fallTimer);
 		fallTimer = null;
@@ -306,13 +317,31 @@ function movePlayer(x, y){
 	}
 	//TODO: make array of data instead of reading bead data
 	if (x >= 0 && x < gridWidth && y >= 0 && getBeadData(x, y) != WALL){
-		PS.color(playerX, playerY, PS.COLOR_WHITE);
+		PS.color(playerX, playerY, oldColor);
 		PS.color(x, y, PS.COLOR_GREEN);
 		playerX = x;
 		playerY = y;
+		switch(getBeadData(playerX, playerY)){
+			case EMPTY:
+				oldColor = PS.COLOR_WHITE;
+				break;
+			case WALL:
+				oldColor = PS.COLOR_BLACK;
+				break;
+			case START:
+				oldColor = PS.COLOR_GRAY;
+				break;
+			case EXIT:
+				oldColor = PS.COLOR_YELLOW;
+				break;
+		}
+	}
+	if (getBeadData(playerX, playerY) == EXIT){
+		PS.statusText("Level Complete!\n");
+		completed = true;
 	}
 	if (!playerOnGround()){
-		fallTimer = PS.timerStart(4, movePlayer, playerX, playerY+1);
+		fallTimer = PS.timerStart(5, movePlayer, playerX, playerY+1);
 	}
 }
 function playerOnGround(){
@@ -320,9 +349,12 @@ function playerOnGround(){
 }
 
 function rotateImage(clockwise){
-	if (!playerOnGround()){
+	if (!playerOnGround() || completed){
 		return
 	}
+	/*let oldX = playerX;
+	let oldY = playerY;
+	let oldData = getBeadData(playerX, playerY);*/
 	var newBeadData = createAndFillTwoDArray({rows:gridHeight, columns:gridWidth, defaultValue: 0})
 
 	//record new rotated bead data
@@ -349,6 +381,15 @@ function rotateImage(clockwise){
 					PS.color( x, y, PS.COLOR_BLACK ); // assign to bead
 					setBeadData(x,y, WALL);
 					break;
+				case EXIT:
+					//PS.debug("Got yellow!!\n");
+					PS.color( x, y, PS.COLOR_YELLOW ); // assign to bead
+					setBeadData(x,y, EXIT);
+					break;
+				case START:
+					PS.color( x, y, PS.COLOR_GRAY ); // assign to bead
+					setBeadData(x,y, START);
+					break;
 			}
 		}
 	}
@@ -357,6 +398,23 @@ function rotateImage(clockwise){
 	}else{
 		movePlayer(playerY, gridWidth - playerX - 1);
 	}
+	/*
+	var newColor;
+	switch(oldData){
+		case EMPTY:
+			newColor = PS.COLOR_WHITE;
+			break;
+		case WALL:
+			oldColor = PS.COLOR_BLACK;
+			break;
+		case START:
+			oldColor = PS.COLOR_GRAY;
+			break;
+		case EXIT:
+			oldColor = PS.COLOR_YELLOW;
+			break;
+	}
+	PS.color(oldX, oldY, newColor);*/
 }
 
 function createAndFillTwoDArray({rows, columns, defaultValue}){
