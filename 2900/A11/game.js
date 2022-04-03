@@ -258,6 +258,9 @@ let DOWN_KEY = 1008
 let LEFT_KEY = 1005
 let RIGHT_KEY = 1007
 
+let Z_KEY = 122;
+let X_KEY = 120;
+
 PS.keyDown = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
 
@@ -279,6 +282,12 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 		case RIGHT_KEY:
 			//PS.debug("RIGHT\n");
 			movePlayer(playerX + 1, playerY);
+			break;
+		case X_KEY:
+			rotateImage(true);
+			break;
+		case Z_KEY:
+			rotateImage(false);
 			break;
 	}
 	// Add code here for when a key is pressed.
@@ -309,6 +318,52 @@ function movePlayer(x, y){
 function playerOnGround(){
 	return getBeadData(playerX, playerY + 1) === WALL;
 }
+
+function rotateImage(clockwise){
+	if (!playerOnGround()){
+		return
+	}
+	var newBeadData = createAndFillTwoDArray({rows:gridHeight, columns:gridWidth, defaultValue: 0})
+
+	//record new rotated bead data
+	for (var r = 0; r < gridHeight; r++)
+	{
+		for (var c = 0; c < gridWidth; c++)
+		{
+			if (clockwise){//clockwise
+				newBeadData[gridHeight - c - 1][r] = getBeadData(r, c);
+			}else{ //counter clockwise
+				newBeadData[c][gridWidth - r - 1] = getBeadData(r, c);
+			}
+		}
+	}
+	
+	for (let y = 0; y < gridWidth; y += 1 ) {
+		for (let x = 0; x < gridHeight; x += 1 ) {
+			switch (newBeadData[x][y]){
+				case EMPTY:
+					PS.color( x, y, PS.COLOR_WHITE ); // assign to bead
+					setBeadData(x,y, EMPTY);
+					break;
+				case WALL:
+					PS.color( x, y, PS.COLOR_BLACK ); // assign to bead
+					setBeadData(x,y, WALL);
+					break;
+			}
+		}
+	}
+	if (clockwise){
+		movePlayer(gridHeight - playerY - 1, playerX);
+	}else{
+		movePlayer(playerY, gridWidth - playerX - 1);
+	}
+}
+
+function createAndFillTwoDArray({rows, columns, defaultValue}){
+	return Array.from({ length:rows }, () => (
+		Array.from({ length:columns }, ()=> defaultValue)
+	 ))
+  }
 /*
 PS.keyUp ( key, shift, ctrl, options )
 Called when a key on the keyboard is released.
