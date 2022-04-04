@@ -65,7 +65,7 @@ var beadData = Array(32*32).fill(0);
 
 var levelStrings = ["images/level0.png", "images/level1.png", "images/level2.png"];
 
-var levelIndex = 2;
+var levelIndex = 0;
 let levelCount = 3;
 
 var oldColor = PS.COLOR_GRAY
