@@ -53,6 +53,9 @@ let WALL = 1;
 let EXIT = 2;
 let START = 3;
 let SPIKE = 4;
+let TRANSPARENT = 5;
+let KEY = 6;
+let LOCK = 7;
 
 let WALL_COLOR = PS.COLOR_BLACK
 
@@ -60,8 +63,16 @@ var fallTimer = null
 
 var beadData = Array(32*32).fill(0);
 
+var levelStrings = ["images/level0.png", "images/level1.png", "images/level2.png"];
+
+var levelIndex = 2;
+let levelCount = 3;
+
 var oldColor = PS.COLOR_GRAY
+
+var died = false;
 var completed = false;
+var finished = false;
 /*
 PS.init( system, options )
 Called once after engine is initialized but before event-polling begins.
@@ -105,8 +116,8 @@ PS.init = function( system, options ) {
 	PS.border(PS.ALL,PS.ALL,0);
 	//PS.color(PS.ALL, PS.ALL, PS.COLOR_GRAY)
 	//PS.data(PS.ALL, PS.ALL, EMPTY);
-	PS.gridColor(PS.COLOR_CYAN)	
-	initLevel();
+	PS.gridColor(PS.COLOR_CYAN);
+	initLevel(levelIndex);
 	// Add any other initialization code you need here.
 };
 
@@ -118,6 +129,8 @@ function setBeadData(x, y, data){
 }
 function initLevel(index){
 	var myLoader;
+	beadData.fill(0);
+	PS.statusText("Level: " + (levelIndex+1));
 	// Image loading function
 	// Called when image loads successfully
 	// [data] parameter will contain imageData
@@ -141,14 +154,17 @@ function initLevel(index){
 			for ( x = 0; x < gridWidth; x += 1 ) {
 				color = imageData.data[ ptr ]; // get color
 				//PS.debug(color + "\n");
-				PS.color( x, y, color ); // assign to bead
+				//PS.color( x, y, color ); // assign to bead
+				PS.alpha(x, y, 255);
 				if (color == 0) {//black
 					setBeadData(x, y, WALL);
+					PS.color( x, y, PS.COLOR_BLACK ); // assign to bead
 				}else if (color == 5046016){ //green
 					//PS.color( x, y, PS.COLOR_GRAY ); // assign to bead
 					setBeadData(x, y, START);
 					playerX = x;
 					playerY = y;
+					PS.color( x, y, PS.COLOR_GRAY ); // assign to bead
 				}
 				else if (color == 16766976){ //yellow
 					//PS.debug("Got yellow!\n");
@@ -156,16 +172,32 @@ function initLevel(index){
 					setBeadData(x, y, EXIT);
 				}
 				else if (color == 16711680){ //red
-					//PS.debug("Got yellow!\n");
+					//PS.debug("Got red!\n");
 					PS.color( x, y, PS.COLOR_RED ); // assign to bead
 					setBeadData(x, y, SPIKE);
+				}
+				else if (color == 16711900){ //magenta
+					//PS.debug("Got magenta!\n");
+					PS.alpha(x, y, 0);
+					setBeadData(x, y, TRANSPARENT);
+				}
+				else if (color == 255){//blue
+					PS.color( x, y, PS.COLOR_BLUE ); // assign to bead
+					setBeadData(x, y, KEY);
+				}
+				else if (color == 16756224){//orange
+					PS.color( x, y, PS.COLOR_ORANGE ); // assign to bead
+					setBeadData(x, y, LOCK);
+				}else{
+					PS.color(x, y, PS.COLOR_WHITE);
 				}
 				//PS.data( x, y, color );
 				ptr += 1; // point to next value
 			}
 		}
 	};
-	PS.imageLoad( "images/level0.png", myLoader, 1 );
+	oldColor = PS.COLOR_GRAY
+	PS.imageLoad( levelStrings[index], myLoader, 1 );	
 }
 /*
 PS.touch ( x, y, data, options )
@@ -279,6 +311,9 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
 
 	//PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
+	if (finished){
+		return;
+	}
 
 	switch (key){
 		/*case UP_KEY:
@@ -301,6 +336,15 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 			rotateImage(true);
 			break;
 		case Z_KEY:
+			if (died){
+				died = false;
+				initLevel(levelIndex);
+				return;
+			}else if (completed){
+				completed = false;
+				initLevel(levelIndex);
+				return;
+			}
 			rotateImage(false);
 			break;
 	}
@@ -310,7 +354,7 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 
 function movePlayer(x, y){
 
-	if (completed){
+	if (completed || died){
 		return;
 	}
 	if (fallTimer != null){
@@ -342,15 +386,30 @@ function movePlayer(x, y){
 			case SPIKE:
 				oldColor = PS.COLOR_RED;
 				break;
+			case KEY:
+				oldColor = PS.COLOR_BLUE;
+				break;
+			case LOCK:
+				oldColor = PS.COLOR_ORANGE;
+				break;
 		}
 	}
 	if (getBeadData(playerX, playerY) == EXIT){
-		PS.statusText("Level Complete!\n");
-		completed = true;
+		levelIndex += 1;
+		if (levelIndex == levelCount){
+			finished = true;
+			PS.statusText("YOU WIN! Thanks for playing!");
+		}else{
+			completed = true;
+			PS.statusText("Level Complete! Press z to continue\n");
+		}
 	}
 	if (getBeadData(playerX, playerY) == SPIKE){
-		PS.statusText("You died! Level failed!\n");
-		completed = true;
+		PS.statusText("You died! Press z to restart\n");
+		died = true;
+	}
+	if (getBeadData(playerX, playerY) == KEY){
+		unlockDoors();
 	}
 	if (!playerOnGround()){
 		fallTimer = PS.timerStart(5, movePlayer, playerX, playerY+1);
@@ -359,9 +418,21 @@ function movePlayer(x, y){
 function playerOnGround(){
 	return getBeadData(playerX, playerY + 1) === WALL;
 }
+function unlockDoors(){
+	setBeadData(playerX, playerY, EMPTY);
+	oldColor = PS.COLOR_WHITE;
+	for (let x = 0; x < gridWidth; x++){
+		for (let y = 0; y < gridHeight; y++){
+			if (getBeadData(x, y) == LOCK){
+				setBeadData(x, y, EXIT);
+				PS.color(x, y, PS.COLOR_YELLOW);
+			}
+		}
+	}
+}
 
 function rotateImage(clockwise){
-	if (!playerOnGround() || completed){
+	if (completed){
 		return
 	}
 	let oldX = playerX;
@@ -384,6 +455,7 @@ function rotateImage(clockwise){
 	//TODO: fix big where the tile the player was previously on stays white on rotate
 	for (let y = 0; y < gridWidth; y += 1 ) {
 		for (let x = 0; x < gridHeight; x += 1 ) {
+			PS.alpha( x, y, 255); // assign to bead
 			switch (newBeadData[x][y]){
 				case EMPTY:
 					PS.color( x, y, PS.COLOR_WHITE ); // assign to bead
@@ -405,6 +477,18 @@ function rotateImage(clockwise){
 				case SPIKE:
 					PS.color( x, y, PS.COLOR_RED); // assign to bead
 					setBeadData(x,y, SPIKE);
+					break;
+				case TRANSPARENT:
+					PS.alpha( x, y, 0); // assign to bead
+					setBeadData(x,y, TRANSPARENT);
+					break;
+				case KEY:
+					PS.color( x, y, PS.COLOR_BLUE); // assign to bead
+					setBeadData(x,y, KEY);
+					break;
+				case LOCK:
+					PS.color( x, y, PS.COLOR_ORANGE); // assign to bead
+					setBeadData(x,y, LOCK);
 					break;
 			}
 		}
