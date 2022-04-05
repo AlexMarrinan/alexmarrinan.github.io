@@ -130,7 +130,7 @@ function setBeadData(x, y, data){
 function initLevel(index){
 	var myLoader;
 	beadData.fill(0);
-	PS.statusText("Level: " + (levelIndex+1));
+	PS.statusText("Level: " + (levelIndex+1) + "/" + levelCount);
 	// Image loading function
 	// Called when image loads successfully
 	// [data] parameter will contain imageData
