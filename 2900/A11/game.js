@@ -195,6 +195,7 @@ function initLevel(index){
 				ptr += 1; // point to next value
 			}
 		}
+		movePlayer(playerX, playerY);
 	};
 	oldColor = PS.COLOR_GRAY
 	PS.imageLoad( levelStrings[index], myLoader, 1 );	
@@ -339,6 +340,7 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 			if (died){
 				died = false;
 				initLevel(levelIndex);
+				//movePlayer(playerX, playerY)
 				return;
 			}else if (completed){
 				completed = false;
