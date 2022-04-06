@@ -63,7 +63,7 @@ var fallTimer = null
 
 var beadData = Array(32*32).fill(0);
 
-var levelStrings = ["images/level0.png", "images/level1.png", "images/level2.png"];
+var levelStrings = ["images/level0.png", "images/level1.png", "images/level2.png", "images/level3.png"];
 
 var levelIndex = 0;
 let levelCount = levelStrings.length;
@@ -386,7 +386,7 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 
 function movePlayer(x, y){
 
-	if (completed || died){
+	if (selecting || completed || finished || died){
 		return;
 	}
 	if (fallTimer != null){
