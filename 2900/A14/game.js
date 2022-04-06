@@ -66,10 +66,13 @@ var beadData = Array(32*32).fill(0);
 var levelStrings = ["images/level0.png", "images/level1.png", "images/level2.png"];
 
 var levelIndex = 0;
-let levelCount = 3;
+let levelCount = levelStrings.length;
+
+var levelsCompleted = Array(levelCount).fill(false);
 
 var oldColor = PS.COLOR_GRAY
 
+var selecting = false;
 var died = false;
 var completed = false;
 var finished = false;
@@ -109,17 +112,30 @@ PS.init = function( system, options ) {
 
 
 	// PS.statusText( "Game" );
-	PS.gridSize( gridWidth, gridHeight ); // set initial size
 
 
 	//PS.alpha(0, 0, 0);
-	PS.border(PS.ALL,PS.ALL,0);
-	//PS.color(PS.ALL, PS.ALL, PS.COLOR_GRAY)
-	//PS.data(PS.ALL, PS.ALL, EMPTY);
 	PS.gridColor(PS.COLOR_CYAN);
-	initLevel(levelIndex);
+	levelSelect();
 	// Add any other initialization code you need here.
 };
+function levelSelect(){
+	selecting = true;
+	PS.gridSize(levelCount, 1);
+	beadData.fill(0);
+	PS.gridColor(PS.COLOR_CYAN);
+	PS.statusText("Select a level");
+	PS.alpha(PS.ALL, PS.ALL, 255);
+	for (let i = 0; i < levelCount; i++){
+		if (levelsCompleted[i]){
+			PS.color(i, 0, PS.COLOR_GREEN);
+		}else{
+			PS.color(i, 0, PS.COLOR_WHITE);
+		}
+		PS.glyph(i, 0, (i+1).toString());
+	}
+}
+
 
 function getBeadData(x, y){
 	return beadData[y*32 + x];
@@ -128,13 +144,21 @@ function setBeadData(x, y, data){
 	beadData[y*32 + x] = data;
 }
 function initLevel(index){
+	died = false;
+	completed = false;
+	finished = false;
+	PS.gridColor(PS.COLOR_CYAN);
+	PS.border(PS.ALL,PS.ALL,0);
+	//PS.color(PS.ALL, PS.ALL, PS.COLOR_GRAY)
+	//PS.data(PS.ALL, PS.ALL, EMPTY);
 	var myLoader;
 	beadData.fill(0);
-	PS.statusText("Level: " + (levelIndex+1) + "/" + levelCount);
+	PS.statusText("Level: " + (levelIndex+1) + " / " + levelCount);
 	// Image loading function
 	// Called when image loads successfully
 	// [data] parameter will contain imageData
-   
+	//PS.alpha(PS.ALL, PS.ALL, 0);
+
 	myLoader = function ( imageData ) {
 		var x, y, ptr, color;
 	   
@@ -145,10 +169,9 @@ function initLevel(index){
 		//"\nwidth = " + imageData.width +
 		//"\nheight = " + imageData.height +
 		//"\nformat = " + imageData.pixelSize + "\n" );
-	   
+		
 		// Extract colors from imageData and
-		// assign them to the beads
-	   
+		// assign them to the beadsd
 		ptr = 0; // init pointer into data array
 		for ( y = 0; y < gridHeight; y += 1 ) {
 			for ( x = 0; x < gridWidth; x += 1 ) {
@@ -216,10 +239,15 @@ PS.touch = function( x, y, data, options ) {
 
 	//PS.debug( "PS.touch() @ " + x + ", " + y + "\n" );
 
-	
 	// Add code here for mouse clicks/touches
 	// over a bead.
 
+	if (selecting){
+		selecting = false;
+		levelIndex = x;
+		PS.gridSize( gridWidth, gridHeight ); // set initial size
+		initLevel(levelIndex);
+	}
 };
 /*
 PS.release ( x, y, data, options )
@@ -307,24 +335,22 @@ let RIGHT_KEY = 1007
 
 let Z_KEY = 122;
 let X_KEY = 120;
+let Q_KEY = 113;
+let R_KEY = 114;
 
 PS.keyDown = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
 
+	if (key == Q_KEY){
+		levelSelect();
+		return;
+	}
 	//PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
-	if (finished){
+	if (finished || selecting){
 		return;
 	}
 
 	switch (key){
-		/*case UP_KEY:
-			PS.debug("UP\n");
-			movePlayer(playerX, playerY - 1);
-			break;
-		case DOWN_KEY:
-			PS.debug("DOWN\n");
-			movePlayer(playerX, playerY + 1);
-			break;	*/
 		case LEFT_KEY:
 			//PS.debug("lEFT\n");
 			movePlayer(playerX - 1, playerY);
@@ -334,20 +360,24 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 			movePlayer(playerX + 1, playerY);
 			break;
 		case X_KEY:
+			if (died){
+				return;
+			}
 			rotateImage(true);
 			break;
 		case Z_KEY:
 			if (died){
-				died = false;
-				initLevel(levelIndex);
-				//movePlayer(playerX, playerY)
 				return;
-			}else if (completed){
+			}
+			if (completed){
 				completed = false;
 				initLevel(levelIndex);
 				return;
 			}
 			rotateImage(false);
+			break;
+		case R_KEY:
+			initLevel(levelIndex);
 			break;
 	}
 	// Add code here for when a key is pressed.
@@ -397,17 +427,18 @@ function movePlayer(x, y){
 		}
 	}
 	if (getBeadData(playerX, playerY) == EXIT){
+		levelsCompleted[levelIndex] = true;
 		levelIndex += 1;
 		if (levelIndex == levelCount){
 			finished = true;
-			PS.statusText("YOU WIN! Thanks for playing!");
+			PS.statusText("YOU WIN! Thanks For Playing!");
 		}else{
 			completed = true;
-			PS.statusText("Level Complete! Press z to continue\n");
+			PS.statusText("Level Complete! Z to Continue or Q to Quit\n");
 		}
 	}
 	if (getBeadData(playerX, playerY) == SPIKE){
-		PS.statusText("You died! Press z to restart\n");
+		PS.statusText("Level Failed! R to Restart or Q to Quit\n");
 		died = true;
 	}
 	if (getBeadData(playerX, playerY) == KEY){
