@@ -76,6 +76,11 @@ var selecting = false;
 var died = false;
 var completed = false;
 var finished = false;
+var moving = false;
+var moveTimer = null;
+
+var moveTickCount = 0;
+
 /*
 PS.init( system, options )
 Called once after engine is initialized but before event-polling begins.
@@ -352,12 +357,22 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 
 	switch (key){
 		case LEFT_KEY:
+			if (!moving){
+				moveTimer = PS.timerStart(1, moveLeft);
+				moveTickCount = 0;
+				moving = true;
+			}
 			//PS.debug("lEFT\n");
-			movePlayer(playerX - 1, playerY);
+			//movePlayer(playerX - 1, playerY);
 			break;
 		case RIGHT_KEY:
+			if (!moving){
+				moveTimer = PS.timerStart(1, moveRight);
+				moveTickCount = 0;
+				moving = true;
+			}
 			//PS.debug("RIGHT\n");
-			movePlayer(playerX + 1, playerY);
+			//movePlayer(playerX + 1, playerY);
 			break;
 		case X_KEY:
 			if (died){
@@ -383,6 +398,18 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 	// Add code here for when a key is pressed.
 };
 
+function moveLeft(){
+	if (moveTickCount % 6 == 0){
+		movePlayer(playerX - 1, playerY);
+	}
+	moveTickCount += 1;	
+}
+function moveRight(){
+	if (moveTickCount % 6 == 0){
+		movePlayer(playerX + 1, playerY);
+	}
+	moveTickCount += 1;
+}
 
 function movePlayer(x, y){
 
@@ -575,6 +602,25 @@ This function doesn't have to do anything. Any value returned is ignored.
 
 PS.keyUp = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
+	//PS.debug("Key released\n");
+	if (moving){
+		switch (key){
+			case LEFT_KEY:
+				moving = false;
+				PS.timerStop(moveTimer);
+				moveTimer = null;
+				//PS.debug("lEFT\n");
+				//movePlayer(playerX - 1, playerY);
+				break;
+			case RIGHT_KEY:
+				moving = false;
+				PS.timerStop(moveTimer);
+				moveTimer = null;
+				//PS.debug("RIGHT\n");
+				//movePlayer(playerX + 1, playerY);
+				break;
+		}
+	}
 
 	// PS.debug( "PS.keyUp(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
