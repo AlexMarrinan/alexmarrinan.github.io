@@ -184,6 +184,9 @@ function initLevel(index){
 				//PS.debug(color + "\n");
 				//PS.color( x, y, color ); // assign to bead
 				PS.alpha(x, y, 255);
+				PS.radius(x, y, 0);
+				PS.bgAlpha(x, y, 0);
+				PS.glyphAlpha(x, y, 0);
 				if (color == 0) {//black
 					setBeadData(x, y, WALL);
 					PS.color( x, y, PS.COLOR_BLACK ); // assign to bead
@@ -212,10 +215,14 @@ function initLevel(index){
 				else if (color == 255){//blue
 					PS.color( x, y, PS.COLOR_BLUE ); // assign to bead
 					setBeadData(x, y, KEY);
+					PS.glyph(x, y, 0x1F511);
+					PS.glyphAlpha(x, y, 255);
 				}
 				else if (color == 16756224){//orange
 					PS.color( x, y, PS.COLOR_ORANGE ); // assign to bead
+					PS.glyph(x, y, 0x1F512);
 					setBeadData(x, y, LOCK);
+					PS.glyphAlpha(x, y, 255);
 				}else{
 					PS.color(x, y, PS.COLOR_WHITE);
 				}
@@ -426,7 +433,11 @@ function movePlayer(x, y){
 	}
 	if (x >= 0 && x < gridWidth && y >= 0 && getBeadData(x, y) != WALL){
 		PS.color(playerX, playerY, oldColor);
+		PS.radius(playerX, playerY, 0);
+		PS.bgAlpha(x, y, 255);
 		PS.color(x, y, PS.COLOR_GREEN);
+		PS.radius(x, y, 50);
+		
 		playerX = x;
 		playerY = y;
 		switch(getBeadData(playerX, playerY)){
@@ -452,6 +463,7 @@ function movePlayer(x, y){
 				oldColor = PS.COLOR_ORANGE;
 				break;
 		}
+		PS.bgColor(x, y, oldColor);
 	}
 	if (getBeadData(playerX, playerY) == EXIT){
 		levelsCompleted[levelIndex] = true;
@@ -480,12 +492,15 @@ function playerOnGround(){
 }
 function unlockDoors(){
 	setBeadData(playerX, playerY, EMPTY);
+	PS.glyphAlpha(playerX, playerY, 0);
+	PS.bgColor(playerX, playerY, PS.COLOR_WHITE);
 	oldColor = PS.COLOR_WHITE;
 	for (let x = 0; x < gridWidth; x++){
 		for (let y = 0; y < gridHeight; y++){
 			if (getBeadData(x, y) == LOCK){
 				setBeadData(x, y, EXIT);
 				PS.color(x, y, PS.COLOR_YELLOW);
+				PS.glyphAlpha(x, y, 0);
 			}
 		}
 	}
@@ -516,6 +531,9 @@ function rotateImage(clockwise){
 	for (let y = 0; y < gridWidth; y += 1 ) {
 		for (let x = 0; x < gridHeight; x += 1 ) {
 			PS.alpha( x, y, 255); // assign to bead
+			PS.glyphAlpha(x, y, 0);
+			PS.bgAlpha(x, y, 0);
+			PS.radius(x, y, 0);
 			switch (newBeadData[x][y]){
 				case EMPTY:
 					PS.color( x, y, PS.COLOR_WHITE ); // assign to bead
@@ -545,10 +563,14 @@ function rotateImage(clockwise){
 				case KEY:
 					PS.color( x, y, PS.COLOR_BLUE); // assign to bead
 					setBeadData(x,y, KEY);
+					PS.glyphAlpha(x, y, 255);
+					PS.glyph(x, y, 0x1F511);
 					break;
 				case LOCK:
 					PS.color( x, y, PS.COLOR_ORANGE); // assign to bead
 					setBeadData(x,y, LOCK);
+					PS.glyphAlpha(x, y, 255);
+					PS.glyph(x, y, 0x1F512);
 					break;
 			}
 		}
