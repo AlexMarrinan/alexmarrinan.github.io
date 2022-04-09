@@ -120,15 +120,15 @@ PS.init = function( system, options ) {
 
 
 	//PS.alpha(0, 0, 0);
-	PS.gridColor(PS.COLOR_CYAN);
 	levelSelect();
 	// Add any other initialization code you need here.
 };
 function levelSelect(){
 	selecting = true;
 	PS.gridSize(levelCount, 1);
+	PS.gridFade(20);
 	beadData.fill(0);
-	PS.gridColor(PS.COLOR_CYAN);
+	PS.gridColor(PS.COLOR_WHITE);
 	PS.statusText("Select a level");
 	PS.alpha(PS.ALL, PS.ALL, 255);
 	for (let i = 0; i < levelCount; i++){
@@ -149,6 +149,7 @@ function setBeadData(x, y, data){
 	beadData[y*32 + x] = data;
 }
 function initLevel(index){
+	//PS.fade(PS.ALL, PS.ALL, 2);
 	died = false;
 	completed = false;
 	finished = false;
@@ -173,8 +174,9 @@ function initLevel(index){
 			gridHeight = imageData.width;
 		}
 		PS.gridSize(gridWidth, gridHeight);
-		PS.gridColor(PS.COLOR_CYAN);
 		PS.border(PS.ALL,PS.ALL,0);
+		PS.gridFade(20);
+		PS.gridColor(PS.COLOR_CYAN);
 		// Extract colors from imageData and
 		// assign them to the beadsd
 		ptr = 0; // init pointer into data array
@@ -219,7 +221,7 @@ function initLevel(index){
 				if (x >= imageData.width || y >= imageData.height){
 					tempData = TRANSPARENT;
 				}
-				dataToColor(x, y, tempData);
+				setBeadColor(x, y, tempData);
 				//PS.data( x, y, color );
 				ptr += 1; // point to next value
 			}
@@ -434,29 +436,9 @@ function movePlayer(x, y){
 		
 		playerX = x;
 		playerY = y;
-		switch(getBeadData(playerX, playerY)){
-			case EMPTY:
-				oldColor = PS.COLOR_WHITE;
-				break;
-			case WALL:
-				oldColor = PS.COLOR_BLACK;
-				break;
-			case START:
-				oldColor = PS.COLOR_GRAY;
-				break;
-			case EXIT:
-				oldColor = PS.COLOR_YELLOW;
-				break;
-			case SPIKE:
-				oldColor = PS.COLOR_RED;
-				break;
-			case KEY:
-				oldColor = PS.COLOR_BLUE;
-				break;
-			case LOCK:
-				oldColor = PS.COLOR_ORANGE;
-				break;
-		}
+		``
+		oldColor = getBeadColor(playerX, playerY);
+
 		PS.bgColor(x, y, oldColor);
 	}
 	if (getBeadData(playerX, playerY) == EXIT){
@@ -528,32 +510,12 @@ function rotateImage(clockwise){
 			PS.glyphAlpha(x, y, 0);
 			PS.bgAlpha(x, y, 0);
 			PS.radius(x, y, 0);
-			dataToColor(x, y, newBeadData[x][y]);
+			setBeadColor(x, y, newBeadData[x][y]);
 		}
 	}
 	//This chunk accounts fixes the bug where the players old position would get set to empty color
-
-	var newColor;
-	//PS.debug(oldX + ", " + oldY + " OLD\n")
-	//PS.debug(getBeadData(oldX, oldY) + "\n");
-	switch(getBeadData(oldX, oldY)){
-		case EMPTY:
-			newColor = PS.COLOR_WHITE;
-			break;
-		case WALL:
-			oldColor = PS.COLOR_BLACK;
-			break;
-		case START:
-			oldColor = PS.COLOR_GRAY;
-			break;
-		case EXIT:
-			oldColor = PS.COLOR_YELLOW;
-			break;
-		case SPIKE:
-			oldColor = PS.COLOR_RED;
-			break;
-	}
-	PS.color(oldX, oldY, newColor);
+	oldColor = getBeadColor(oldX, oldY);
+	PS.color(oldX, oldY, oldColor);
 
 	if (clockwise){
 		movePlayer(gridHeight - playerY - 1, playerX);
@@ -569,7 +531,7 @@ function createAndFillTwoDArray({rows, columns, defaultValue}){
 	 ))
   }
 
-function dataToColor(x, y, data){
+function setBeadColor(x, y, data){
 	switch (data){
 		case EMPTY:
 			PS.color( x, y, PS.COLOR_WHITE ); // assign to bead
@@ -609,6 +571,25 @@ function dataToColor(x, y, data){
 			PS.glyph(x, y, 0x1F512);
 			break;
 	}
+}
+
+function getBeadColor( x, y ){
+	switch(getBeadData(x, y)){
+		case EMPTY:
+			return PS.COLOR_WHITE;
+		case WALL:
+			return PS.COLOR_BLACK;
+		case START:
+			return PS.COLOR_GRAY;
+		case EXIT:
+			return PS.COLOR_YELLOW;
+		case SPIKE:
+			return PS.COLOR_RED;
+		case KEY:
+			return PS.COLOR_BLUE;
+		case LOCK:
+			return PS.COLOR_ORANGE;
+	}	
 }
 /*
 PS.keyUp ( key, shift, ctrl, options )
