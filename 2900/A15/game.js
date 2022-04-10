@@ -48,23 +48,32 @@ var playerY = 12
 var playerSprite
 
 //tile ids
-let EMPTY = 0;
-let WALL = 1;
-let EXIT = 2;
-let START = 3;
-let SPIKE = 4;
-let TRANSPARENT = 5;
-let KEY = 6;
-let LOCK = 7;
+const EMPTY = 0;
+const WALL = 1;
+const EXIT = 2;
+const START = 3;
+const SPIKE = 4;
+const TRANSPARENT = 5;
+const KEY = 6;
+const LOCK = 7;
 
-let WALL_COLOR = PS.COLOR_BLACK
+const BACKGROUND_COLOR = 0x827ca6
+const EMPTY_COLOR = PS.COLOR_WHITE
+const WALL_COLOR = PS.COLOR_BLACK
+const EXIT_COLOR = 0x04bf8a
+const START_COLOR = PS.COLOR_GRAY
+const SPIKE_COLOR = 0xd90416
+const KEY_COLOR = 0xd98e04
+const LOCK_COLOR = 0x00788c
+const PLAYER_COLOR = 0x04d99d
 
 var fallTimer = null
 
 var beadData = Array(32*32).fill(0);
 
-var levelStrings = ["images/level0.png", "images/level1.png", "images/level2.png", "images/level3.png"];
-
+const levelStrings =	 ["images/level0.png", "images/level1.png", "images/level2.png", "images/level3.png"];
+const emptyColors =		 [0xf3e6ff, 		    0xfed8b1, 			 0xb9e1ff,           0xe6e39e];
+const backgroundColors = [0x827ca6,			    0xf58025,			 0x17527f, 	         0xa6a649];
 var levelIndex = 0;
 let levelCount = levelStrings.length;
 
@@ -80,6 +89,15 @@ var moving = false;
 var moveTimer = null;
 
 var moveTickCount = 0;
+
+/*SOUND CREDITS:
+GRAVITY ROTATE:
+KEY PICKUP:
+VICTORY:
+DEFEAT:
+CLICK:
+*/
+
 
 /*
 PS.init( system, options )
@@ -126,16 +144,17 @@ PS.init = function( system, options ) {
 function levelSelect(){
 	selecting = true;
 	PS.gridSize(levelCount, 1);
-	PS.gridFade(20);
+	//PS.gridFade(20);
 	beadData.fill(0);
-	PS.gridColor(PS.COLOR_WHITE);
+	PS.gridColor(backgroundColors[levelIndex]);
+	PS.statusColor(emptyColors[levelIndex]);
 	PS.statusText("Select a level");
 	PS.alpha(PS.ALL, PS.ALL, 255);
 	for (let i = 0; i < levelCount; i++){
 		if (levelsCompleted[i]){
-			PS.color(i, 0, PS.COLOR_GREEN);
+			PS.color(i, 0, PLAYER_COLOR);
 		}else{
-			PS.color(i, 0, PS.COLOR_WHITE);
+			PS.color(i, 0, emptyColors[levelIndex]);
 		}
 		PS.glyph(i, 0, (i+1).toString());
 	}
@@ -175,8 +194,9 @@ function initLevel(index){
 		}
 		PS.gridSize(gridWidth, gridHeight);
 		PS.border(PS.ALL,PS.ALL,0);
-		PS.gridFade(20);
-		PS.gridColor(PS.COLOR_CYAN);
+		PS.statusColor(emptyColors[levelIndex]);
+		//PS.gridFade(20);
+		PS.gridColor(backgroundColors[levelIndex]);
 		// Extract colors from imageData and
 		// assign them to the beadsd
 		ptr = 0; // init pointer into data array
@@ -254,6 +274,7 @@ PS.touch = function( x, y, data, options ) {
 		selecting = false;
 		levelIndex = x;
 		PS.gridSize( gridWidth, gridHeight ); // set initial size
+		PS.audioLoad("select", {autoplay: true, path: "audio/"});
 		initLevel(levelIndex);
 	}
 };
@@ -415,7 +436,6 @@ function moveRight(){
 }
 
 function movePlayer(x, y){
-
 	if (selecting || completed || finished || died){
 		return;
 	}
@@ -431,7 +451,7 @@ function movePlayer(x, y){
 		PS.color(playerX, playerY, oldColor);
 		PS.radius(playerX, playerY, 0);
 		PS.bgAlpha(x, y, 255);
-		PS.color(x, y, PS.COLOR_GREEN);
+		PS.color(x, y, PLAYER_COLOR);
 		PS.radius(x, y, 50);
 		
 		playerX = x;
@@ -451,9 +471,11 @@ function movePlayer(x, y){
 			completed = true;
 			PS.statusText("Level Complete! Z to Continue or Q to Quit\n");
 		}
+		PS.audioLoad("victory", {autoplay: true, path: "audio/"});
 	}
 	if (getBeadData(playerX, playerY) == SPIKE){
 		PS.statusText("Level Failed! R to Restart or Q to Quit\n");
+		PS.audioLoad("death", {autoplay: true, path: "audio/", volume: 0.2});
 		died = true;
 	}
 	if (getBeadData(playerX, playerY) == KEY){
@@ -467,15 +489,16 @@ function playerOnGround(){
 	return getBeadData(playerX, playerY + 1) === WALL;
 }
 function unlockDoors(){
+	PS.audioLoad("key", {autoplay: true, path: "audio/", volume: 1.0});
 	setBeadData(playerX, playerY, EMPTY);
 	PS.glyphAlpha(playerX, playerY, 0);
-	PS.bgColor(playerX, playerY, PS.COLOR_WHITE);
-	oldColor = PS.COLOR_WHITE;
+	PS.bgColor(playerX, playerY, emptyColors[levelIndex]);
+	oldColor = emptyColors[levelIndex];
 	for (let x = 0; x < gridWidth; x++){
 		for (let y = 0; y < gridHeight; y++){
 			if (getBeadData(x, y) == LOCK){
 				setBeadData(x, y, EXIT);
-				PS.color(x, y, PS.COLOR_YELLOW);
+				PS.color(x, y, EXIT_COLOR);
 				PS.glyphAlpha(x, y, 0);
 			}
 		}
@@ -518,8 +541,10 @@ function rotateImage(clockwise){
 	PS.color(oldX, oldY, oldColor);
 
 	if (clockwise){
+		PS.audioLoad("leftswoosh", {autoplay: true, path: "audio/"});
 		movePlayer(gridHeight - playerY - 1, playerX);
 	}else{
+		PS.audioLoad("rightswoosh", {autoplay: true, path: "audio/"});
 		movePlayer(playerY, gridWidth - playerX - 1);
 	}
 
@@ -534,24 +559,24 @@ function createAndFillTwoDArray({rows, columns, defaultValue}){
 function setBeadColor(x, y, data){
 	switch (data){
 		case EMPTY:
-			PS.color( x, y, PS.COLOR_WHITE ); // assign to bead
+			PS.color( x, y, emptyColors[levelIndex] ); // assign to bead
 			setBeadData(x,y, EMPTY);
 			break;
 		case WALL:
-			PS.color( x, y, PS.COLOR_BLACK ); // assign to bead
+			PS.color( x, y, WALL_COLOR ); // assign to bead
 			setBeadData(x,y, WALL);
 			break;
 		case EXIT:
 			//PS.debug("Got yellow!!\n");
-			PS.color( x, y, PS.COLOR_YELLOW ); // assign to bead
+			PS.color( x, y, EXIT_COLOR ); // assign to bead
 			setBeadData(x,y, EXIT);
 			break;
 		case START:
-			PS.color( x, y, PS.COLOR_GRAY ); // assign to bead
+			PS.color( x, y, START_COLOR ); // assign to bead
 			setBeadData(x,y, START);
 			break;
 		case SPIKE:
-			PS.color( x, y, PS.COLOR_RED); // assign to bead
+			PS.color( x, y, SPIKE_COLOR); // assign to bead
 			setBeadData(x,y, SPIKE);
 			break;
 		case TRANSPARENT:
@@ -559,13 +584,13 @@ function setBeadColor(x, y, data){
 			setBeadData(x,y, TRANSPARENT);
 			break;
 		case KEY:
-			PS.color( x, y, PS.COLOR_BLUE); // assign to bead
+			PS.color( x, y, KEY_COLOR); // assign to bead
 			setBeadData(x,y, KEY);
 			PS.glyphAlpha(x, y, 255);
 			PS.glyph(x, y, 0x1F511);
 			break;
 		case LOCK:
-			PS.color( x, y, PS.COLOR_ORANGE); // assign to bead
+			PS.color( x, y, LOCK_COLOR); // assign to bead
 			setBeadData(x,y, LOCK);
 			PS.glyphAlpha(x, y, 255);
 			PS.glyph(x, y, 0x1F512);
@@ -576,19 +601,19 @@ function setBeadColor(x, y, data){
 function getBeadColor( x, y ){
 	switch(getBeadData(x, y)){
 		case EMPTY:
-			return PS.COLOR_WHITE;
+			return emptyColors[levelIndex];
 		case WALL:
-			return PS.COLOR_BLACK;
+			return WALL_COLOR;
 		case START:
-			return PS.COLOR_GRAY;
+			return START_COLOR;
 		case EXIT:
-			return PS.COLOR_YELLOW;
+			return EXIT_COLOR;
 		case SPIKE:
-			return PS.COLOR_RED;
+			return SPIKE_COLOR;
 		case KEY:
-			return PS.COLOR_BLUE;
+			return KEY_COLOR;
 		case LOCK:
-			return PS.COLOR_ORANGE;
+			return LOCK_COLOR;
 	}	
 }
 /*
