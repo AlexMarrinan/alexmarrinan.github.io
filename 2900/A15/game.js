@@ -351,6 +351,10 @@ PS.exit = function( x, y, data, options ) {
 
 	// PS.debug( "PS.exit() @ " + x + ", " + y + "\n" );
 
+	if (selecting || completed || died || finished){
+		return;
+	}
+	PS.statusText("Level: " + (levelIndex+1) + " / " + levelCount);
 	// Add code here for when the mouse cursor/touch exits a bead.
 };
 
@@ -432,6 +436,7 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 			}
 			if (completed){
 				completed = false;
+				levelIndex += 1;
 				initLevel(levelIndex);
 				return;
 			}
@@ -486,8 +491,7 @@ function movePlayer(x, y){
 	}
 	if (getBeadData(playerX, playerY) == EXIT){
 		levelsCompleted[levelIndex] = true;
-		levelIndex += 1;
-		if (levelIndex == levelCount){
+		if (levelIndex == levelCount - 1){
 			finished = true;
 			PS.statusText("YOU WIN! Thanks For Playing!");
 		}else{
