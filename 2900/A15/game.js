@@ -327,7 +327,7 @@ PS.enter = function( x, y, data, options ) {
 			PS.statusText("Key: Pick up to unlock the goal!")
 			break;
 		case START:
-			PS.statusText("Start: Player staring postition.")
+			PS.statusText("Start: Player starting position.")
 			break;
 		default:
 			PS.statusText("Level: " + (levelIndex+1) + " / " + levelCount);
