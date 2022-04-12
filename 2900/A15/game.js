@@ -313,6 +313,10 @@ PS.enter = function( x, y, data, options ) {
 	if (selecting || completed || died || finished){
 		return;
 	}
+	if (x == playerX && y == playerY){
+		PS.statusText("Thats you! Press X or Z to flip the gravity!")
+		return
+	}
 	switch(getBeadData(x,y)){
 		case SPIKE: 
 			PS.statusText("Danger! Don't step on the red tiles!")
