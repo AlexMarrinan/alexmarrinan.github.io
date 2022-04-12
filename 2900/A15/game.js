@@ -318,7 +318,7 @@ PS.enter = function( x, y, data, options ) {
 			PS.statusText("Danger! Don't step on the red tiles!")
 			break;
 		case EXIT:
-			PS.statusText("Goal: Reach this to complete the leve!")
+			PS.statusText("Goal: Reach this to complete the level!")
 			break;
 		case LOCK:
 			PS.statusText("Lock: Unlock with a key to open the goal!")
