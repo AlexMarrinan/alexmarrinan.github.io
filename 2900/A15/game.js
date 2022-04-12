@@ -310,7 +310,29 @@ PS.enter = function( x, y, data, options ) {
 	// Uncomment the following code line to inspect x/y parameters:
 
 	// PS.debug( "PS.enter() @ " + x + ", " + y + "\n" );
-
+	if (selecting || completed || died || finished){
+		return;
+	}
+	switch(getBeadData(x,y)){
+		case SPIKE: 
+			PS.statusText("Danger! Don't step on the red tiles!")
+			break;
+		case EXIT:
+			PS.statusText("Goal: Reach this to complete the leve!")
+			break;
+		case LOCK:
+			PS.statusText("Lock: Unlock with a key to open the goal!")
+			break;
+		case KEY:
+			PS.statusText("Key: Pick up to unlock the goal!")
+			break;
+		case START:
+			PS.statusText("Start: Player staring postition.")
+			break;
+		default:
+			PS.statusText("Level: " + (levelIndex+1) + " / " + levelCount);
+			break;
+	}
 	// Add code here for when the mouse cursor/touch enters a bead.
 };
 
@@ -428,6 +450,7 @@ function moveLeft(){
 	}
 	moveTickCount += 1;	
 }
+
 function moveRight(){
 	if (moveTickCount % 6 == 0){
 		movePlayer(playerX + 1, playerY);
@@ -547,7 +570,6 @@ function rotateImage(clockwise){
 		PS.audioLoad("rightswoosh", {autoplay: true, path: "audio/"});
 		movePlayer(playerY, gridWidth - playerX - 1);
 	}
-
 }
 
 function createAndFillTwoDArray({rows, columns, defaultValue}){
