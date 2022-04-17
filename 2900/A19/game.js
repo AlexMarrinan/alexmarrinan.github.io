@@ -49,13 +49,44 @@ Any value returned is ignored.
 */
 const GRID_HEIGHT = 16
 const GRID_WIDTH = 15
+
+//tile ids
+const EMPTY = 0;
+const WALL = 1;
+const EXIT = 2;
+const START = 3;
+const SPIKE = 4;
+const TRANSPARENT = 5;
+const KEY = 6;
+const LOCK = 7;
+
+//color ids for colision map
+const BACKGROUND_COLOR = 0x827ca6
+const EMPTY_COLOR = PS.COLOR_WHITE
+const WALL_COLOR = PS.COLOR_BLACK
+const EGG_COLOR = 255
+const KEY_COLOR = 0xd98e04
+const LOCK_COLOR = 0x00788c
+const PLAYER_COLOR = 5046016
 let mapWidth = 16;
 let mapHeight = 16;
+
+
+//Current direction the player is moving, not moving when zero
+var moveX = 0;
+var moveY = 0;
 
 var playerX = 0;
 var playerY = 0;
 
+var timer = null;
+var tickCount = 0;
+
+var eggCount = 0
+const EGG_MAX = 15
+
 var beadData = Array(32*32).fill(0);
+var colisionData = Array(32*32).fill(0);
 
 PS.init = function( system, options ) {
 	// Uncomment the following code line
@@ -84,54 +115,79 @@ PS.init = function( system, options ) {
 	// PS.statusText( "Game" );
 	PS.gridSize(GRID_WIDTH, GRID_HEIGHT)
 	PS.statusText("Egg Expedition!");
+	timer = PS.timerStart(1, onTick);
 	initLevel(0)
 	// Add any other initialization code you need here.
 };
+
+
+function onTick(){
+	//Move player if they have a velocity
+	if (tickCount % 4 == 0){
+		setPlayerPos(playerX + moveX, playerY + moveY);
+	}
+
+
+	tickCount++;
+}
 function initLevel(index){
 	//PS.fade(PS.ALL, PS.ALL, 2);
 	//PS.color(PS.ALL, PS.ALL, PS.COLOR_GRAY)
 	//PS.data(PS.ALL, PS.ALL, EMPTY);
-	var myLoader;
+	var graphicsLoader;
+	var collisionLoader;
 	//beadData.fill(0);
 	// Image loading function
 	// Called when image loads successfully
 	// [data] parameter will contain imageData
 	//PS.alpha(PS.ALL, PS.ALL, 0);
 
-	myLoader = function ( imageData ) {
+	collisionLoader = function ( imageData ) {
 		var x, y, ptr, color;
 
-		/*PS.gridSize(gridWidth, gridHeight);
-		PS.border(PS.ALL,PS.ALL,0);
-		PS.statusColor(emptyColors[levelIndex]);
-		//PS.gridFade(20);
-		PS.gridColor(backgroundColors[levelIndex]);*/
-		// Extract colors from imageData and
-		// assign them to the beadsd
 		mapHeight = imageData.height
 		mapWidth = imageData.width
-		PS.debug("width: " + mapWidth + "\n");
-		PS.debug("heigh: " + mapHeight + "\n");	
-		beadData = Array(mapWidth*mapHeight).fill(PS.COLOR_WHITE);
+
+		colisionData = Array(mapWidth*mapHeight).fill(PS.COLOR_WHITE);
 		ptr = 0; // init pointer into data array
 		for ( y = 0; y < mapHeight; y += 1 ) {
 			for ( x = 0; x < mapWidth; x += 1 ) {
 				color = imageData.data[ ptr ]; // get color
 				//PS.debug(color + "\n");
-				if (color === 5046016){//green
-					//tempData = START;
+				if (color == PLAYER_COLOR){//green
 					playerX = x;
 					playerY = y;
-				}else{
-					setBeadData(x, y, color);
-				}
+				}else if (color == EGG_COLOR){
+					//PS.debug("Egg placed at " + x + ", " + y + "\n");
+				}					
+				setColisionData(x, y, color);
 				//PS.data( x, y, color );*/
 				ptr += 1; // point to next value
 			}
 		}
 		setPlayerPos(playerX, playerY);
 	};
-	PS.imageLoad( "images/level0.png", myLoader, 1 );	
+	graphicsLoader = function ( imageData ) {
+		var x, y, ptr, color;
+
+		mapHeight = imageData.height
+		mapWidth = imageData.width
+
+		beadData = Array(mapWidth*mapHeight).fill(PS.COLOR_WHITE);
+
+		ptr = 0; // init pointer into data array
+		for ( y = 0; y < mapHeight; y += 1 ) {
+			for ( x = 0; x < mapWidth; x += 1 ) {
+				color = imageData.data[ ptr ]; // get color
+				setBeadData(x, y, color);
+				//PS.data( x, y, color );*/
+				ptr += 1; // point to next value
+			}
+		}
+	};
+	PS.imageLoad( "images/level0.png", collisionLoader, 1 );	
+	PS.imageLoad( "images/level0_graphics.png", graphicsLoader, 1 );	
+
 }
 function getBeadData(x, y){
 	return beadData[y*mapWidth + x];
@@ -140,15 +196,35 @@ function setBeadData(x, y, data){
 	beadData[y*mapWidth + x] = data;
 }
 
+function getColisionData(x, y){
+	return colisionData[y*mapWidth + x];
+}
+function setColisionData(x, y, data){
+	colisionData[y*mapWidth + x] = data;
+}
+
 function setPlayerPos(x, y){
 	if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight){
 		return;
+	}
+	if (getColisionData(x, y) == WALL_COLOR){
+		return;
+	}
+	if (getColisionData(x, y) == EGG_COLOR){
+		collectEgg();
+		setColisionData(x, y, EMPTY_COLOR);
 	}
 	playerX = x;
 	playerY = y;
 
 	renderCamera();
 	//renderPlayer();
+}
+
+function collectEgg(){
+	PS.debug("Found egg #" + (eggCount+1) + "! \n");
+	PS.color(eggCount, GRID_HEIGHT-1, 0x827ca6);
+	eggCount++;
 }
 
 function renderCamera(){
@@ -288,22 +364,32 @@ const DOWN_KEY = 1008
 const LEFT_KEY = 1005
 const RIGHT_KEY = 1007
 
+const W_KEY = 119
+const A_KEY = 97
+const S_KEY = 115
+const D_KEY = 100
+
+
 PS.keyDown = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
 
-	// PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
+	//PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 	switch (key){
 		case UP_KEY:
-			setPlayerPos(playerX, playerY - 1);
+		case W_KEY:
+			moveY = -1;
 			break;
 		case DOWN_KEY:
-			setPlayerPos(playerX, playerY + 1);
+		case S_KEY:
+			moveY = 1;
 			break;
 		case LEFT_KEY:
-			setPlayerPos(playerX - 1, playerY);
+		case A_KEY:
+			moveX = -1;
 			break;
 		case RIGHT_KEY:
-			setPlayerPos(playerX + 1, playerY);
+		case D_KEY:
+			moveX = 1;
 			break;
 	}
 	// Add code here for when a key is pressed.
@@ -325,6 +411,25 @@ PS.keyUp = function( key, shift, ctrl, options ) {
 	// PS.debug( "PS.keyUp(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 
 	// Add code here for when a key is released.
+
+	switch (key){
+		case UP_KEY:
+		case W_KEY:
+			moveY = 0;
+			break;
+		case DOWN_KEY:
+		case S_KEY:
+			moveY = 0;
+			break;
+		case LEFT_KEY:
+		case A_KEY:
+			moveX = 0;
+			break;
+		case RIGHT_KEY:
+		case D_KEY:
+			moveX = 0;
+			break;
+	}
 };
 
 /*
