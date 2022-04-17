@@ -47,6 +47,15 @@ Any value returned is ignored.
 [system : Object] = A JavaScript object containing engine and host platform information properties; see API documentation for details.
 [options : Object] = A JavaScript object with optional data properties; see API documentation for details.
 */
+const GRID_HEIGHT = 16
+const GRID_WIDTH = 15
+let mapWidth = 16;
+let mapHeight = 16;
+
+var playerX = 0;
+var playerY = 0;
+
+var beadData = Array(32*32).fill(0);
 
 PS.init = function( system, options ) {
 	// Uncomment the following code line
@@ -73,9 +82,108 @@ PS.init = function( system, options ) {
 	// change the string parameter as needed.
 
 	// PS.statusText( "Game" );
-	PS.gridSize(16, 16)
+	PS.gridSize(GRID_WIDTH, GRID_HEIGHT)
+	PS.statusText("Egg Expedition!");
+	initLevel(0)
 	// Add any other initialization code you need here.
 };
+function initLevel(index){
+	//PS.fade(PS.ALL, PS.ALL, 2);
+	//PS.color(PS.ALL, PS.ALL, PS.COLOR_GRAY)
+	//PS.data(PS.ALL, PS.ALL, EMPTY);
+	var myLoader;
+	//beadData.fill(0);
+	// Image loading function
+	// Called when image loads successfully
+	// [data] parameter will contain imageData
+	//PS.alpha(PS.ALL, PS.ALL, 0);
+
+	myLoader = function ( imageData ) {
+		var x, y, ptr, color;
+
+		/*PS.gridSize(gridWidth, gridHeight);
+		PS.border(PS.ALL,PS.ALL,0);
+		PS.statusColor(emptyColors[levelIndex]);
+		//PS.gridFade(20);
+		PS.gridColor(backgroundColors[levelIndex]);*/
+		// Extract colors from imageData and
+		// assign them to the beadsd
+		mapHeight = imageData.height
+		mapWidth = imageData.width
+		PS.debug("width: " + mapWidth + "\n");
+		PS.debug("heigh: " + mapHeight + "\n");	
+		beadData = Array(mapWidth*mapHeight).fill(PS.COLOR_WHITE);
+		ptr = 0; // init pointer into data array
+		for ( y = 0; y < mapHeight; y += 1 ) {
+			for ( x = 0; x < mapWidth; x += 1 ) {
+				color = imageData.data[ ptr ]; // get color
+				//PS.debug(color + "\n");
+				if (color === 5046016){//green
+					//tempData = START;
+					playerX = x;
+					playerY = y;
+				}else{
+					setBeadData(x, y, color);
+				}
+				//PS.data( x, y, color );*/
+				ptr += 1; // point to next value
+			}
+		}
+		setPlayerPos(playerX, playerY);
+	};
+	PS.imageLoad( "images/level0.png", myLoader, 1 );	
+}
+function getBeadData(x, y){
+	return beadData[y*mapWidth + x];
+}
+function setBeadData(x, y, data){
+	beadData[y*mapWidth + x] = data;
+}
+
+function setPlayerPos(x, y){
+	if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight){
+		return;
+	}
+	playerX = x;
+	playerY = y;
+
+	renderCamera();
+	//renderPlayer();
+}
+
+function renderCamera(){
+	let minX = playerX - 7;
+	let maxX = playerX + 7;
+	let minY = playerY - 7;
+	let maxY = playerY + 7;
+	let x = 0;
+	let y = 0;
+	//PS.debug(minX+ "\n");
+	//PS.debug(maxX+ "\n");
+
+	for ( var tempy = minY; tempy <= maxY; tempy += 1 ) {
+		for ( var tempx = minX; tempx <= maxX; tempx += 1 ) {
+			if (tempy < 0 || tempy >= mapHeight || tempx < 0 || tempx >= mapWidth){
+				PS.border(x, y, 0);
+				PS.color(x, y, PS.COLOR_GRAY)
+			}else if (x == 7 && y == 7){
+				PS.color(x, y, PS.COLOR_GREEN);
+				PS.border(x, y);
+				PS.radius(x, y, 50);
+				PS.bgAlpha(x, y, 255);
+				PS.bgColor(x, y, getBeadData(tempx, tempy));
+			}else{
+				PS.border(x, y, 0);
+				PS.color(x, y, getBeadData(tempx, tempy));
+			}
+			x += 1;
+		}
+		x = 0;
+		y += 1;
+	}
+	//PS.debug(x+ "\n");
+	//PS.debug(y+ "\n");
+}
 
 /*
 PS.touch ( x, y, data, options )
@@ -175,12 +283,29 @@ This function doesn't have to do anything. Any value returned is ignored.
 [ctrl : Boolean] = true if control key is held down, else false.
 [options : Object] = A JavaScript object with optional data properties; see API documentation for details.
 */
+const UP_KEY = 1006
+const DOWN_KEY = 1008
+const LEFT_KEY = 1005
+const RIGHT_KEY = 1007
 
 PS.keyDown = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
 
 	// PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
-
+	switch (key){
+		case UP_KEY:
+			setPlayerPos(playerX, playerY - 1);
+			break;
+		case DOWN_KEY:
+			setPlayerPos(playerX, playerY + 1);
+			break;
+		case LEFT_KEY:
+			setPlayerPos(playerX - 1, playerY);
+			break;
+		case RIGHT_KEY:
+			setPlayerPos(playerX + 1, playerY);
+			break;
+	}
 	// Add code here for when a key is pressed.
 };
 
