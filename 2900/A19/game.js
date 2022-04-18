@@ -65,8 +65,8 @@ const BACKGROUND_COLOR = 0x827ca6
 const EMPTY_COLOR = PS.COLOR_WHITE
 const WALL_COLOR = PS.COLOR_BLACK
 const EGG_COLOR = 255
-const KEY_COLOR = 0xd98e04
-const LOCK_COLOR = 0x00788c
+const SPEED_COLOR = 16711680
+const RADAR_COLOR = 16756224
 const PLAYER_COLOR = 5046016
 let mapWidth = 16;
 let mapHeight = 16;
@@ -84,9 +84,14 @@ var tickCount = 0;
 
 var eggCount = 0
 const EGG_MAX = 15
+var speedTime = 0
+const SPEED_MAX = 360
+var radarTime = 0
+const RADAR_MAX = 4000
 
 var beadData = Array(32*32).fill(0);
 var colisionData = Array(32*32).fill(0);
+var eggLocations = Array(EGG_MAX).fill([0,0]);
 
 PS.init = function( system, options ) {
 	// Uncomment the following code line
@@ -126,8 +131,19 @@ function onTick(){
 	if (tickCount % 4 == 0){
 		setPlayerPos(playerX + moveX, playerY + moveY);
 	}
-
-
+	if (speedTime > 0){
+		if ((tickCount + 2) % 4 == 0){
+			setPlayerPos(playerX + moveX, playerY + moveY);
+		}
+		speedTime -= 1;
+	}
+	if (radarTime > 0){
+		let distance = getClosestBeed(playerX, playerY);
+		PS.statusText(distance + "spaces away");
+		radarTime -= 1;
+	}else{
+		PS.statusText("Egg Expedition!");
+	}
 	tickCount++;
 }
 function initLevel(index){
@@ -143,13 +159,14 @@ function initLevel(index){
 	//PS.alpha(PS.ALL, PS.ALL, 0);
 
 	collisionLoader = function ( imageData ) {
-		var x, y, ptr, color;
+		var x, y, ptr, color, eggs;
 
 		mapHeight = imageData.height
 		mapWidth = imageData.width
 
 		colisionData = Array(mapWidth*mapHeight).fill(PS.COLOR_WHITE);
 		ptr = 0; // init pointer into data array
+		eggs = 0;
 		for ( y = 0; y < mapHeight; y += 1 ) {
 			for ( x = 0; x < mapWidth; x += 1 ) {
 				color = imageData.data[ ptr ]; // get color
@@ -157,9 +174,11 @@ function initLevel(index){
 				if (color == PLAYER_COLOR){//green
 					playerX = x;
 					playerY = y;
-				}else if (color == EGG_COLOR){
-					//PS.debug("Egg placed at " + x + ", " + y + "\n");
-				}					
+				}
+				/*if (color == EGG_COLOR){
+					eggLocations[eggs] = [x,y];
+					eggs += 1
+				}*/
 				setColisionData(x, y, color);
 				//PS.data( x, y, color );*/
 				ptr += 1; // point to next value
@@ -169,24 +188,20 @@ function initLevel(index){
 	};
 	graphicsLoader = function ( imageData ) {
 		var x, y, ptr, color;
-
-		mapHeight = imageData.height
-		mapWidth = imageData.width
-
+		//PS.debug("yep")
 		beadData = Array(mapWidth*mapHeight).fill(PS.COLOR_WHITE);
-
+		//PS.debug(mapHeight + " " + mapWidth)
 		ptr = 0; // init pointer into data array
 		for ( y = 0; y < mapHeight; y += 1 ) {
 			for ( x = 0; x < mapWidth; x += 1 ) {
 				color = imageData.data[ ptr ]; // get color
 				setBeadData(x, y, color);
-				//PS.data( x, y, color );*/
 				ptr += 1; // point to next value
 			}
 		}
 	};
-	PS.imageLoad( "images/level0.png", collisionLoader, 1 );	
-	PS.imageLoad( "images/level0_graphics.png", graphicsLoader, 1 );	
+	PS.imageLoad( "images/map_col.png", collisionLoader, 1 );	
+	PS.imageLoad( "images/map_gfx.png", graphicsLoader, 1 );	
 
 }
 function getBeadData(x, y){
@@ -205,6 +220,7 @@ function setColisionData(x, y, data){
 
 function setPlayerPos(x, y){
 	if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight){
+		PS.debug("Move out of bounds")
 		return;
 	}
 	if (getColisionData(x, y) == WALL_COLOR){
@@ -212,6 +228,14 @@ function setPlayerPos(x, y){
 	}
 	if (getColisionData(x, y) == EGG_COLOR){
 		collectEgg();
+		setColisionData(x, y, EMPTY_COLOR);
+	}
+	if (getColisionData(x, y) == SPEED_COLOR){
+		collectSpeed();
+		setColisionData(x, y, EMPTY_COLOR);
+	}
+	if (getColisionData(x, y) == RADAR_COLOR){
+		startRadar();
 		setColisionData(x, y, EMPTY_COLOR);
 	}
 	playerX = x;
@@ -222,9 +246,51 @@ function setPlayerPos(x, y){
 }
 
 function collectEgg(){
-	PS.debug("Found egg #" + (eggCount+1) + "! \n");
+	//PS.debug("Found egg #" + (eggCount+1) + "! \n");
 	PS.color(eggCount, GRID_HEIGHT-1, 0x827ca6);
+	for (var i = 0; i < EGG_MAX; i++){
+		if (eggLocations[i] === [playerX, playerY]){
+			eggLocations[i] = null;
+		}
+	}
 	eggCount++;
+	if (eggCount == EGG_MAX){
+		PS.statusText("YOU DID IT!");
+	}
+}
+
+function collectSpeed(){
+	PS.debug("Found speed powerup\n");
+	speedTime = SPEED_MAX;
+}
+
+function startRadar(){
+	PS.debug("Found radar powerup\n");
+	radarTime = RADAR_MAX;
+}
+
+function getClosestBeed(x, y){
+	var distances = Array(EGG_MAX).fill(0);
+
+	for (var i = 0; i < EGG_MAX; i++){
+		if (eggLocations[i] != null){
+			let x2 = eggLocations[i][0];
+			let y2 = eggLocations[i][1];
+			distances[i] = Math.sqrt((x2-x)^2+(y2-y)^2);
+		}else{
+			distances[i] = null;
+		}
+	}
+	var lowest = 1000;
+	for (var i = 0; i < EGG_MAX; i++){
+		if (distances[i] == null){
+			continue;
+		}
+		if (lowest > distances[i]){
+			lowest = distances[i];
+		}
+	}
+	return Math.ceil(lowest);
 }
 
 function renderCamera(){
@@ -254,6 +320,18 @@ function renderCamera(){
 				PS.radius(x, y, 50);
 				PS.bgAlpha(x, y, 255);
 				PS.color(x, y, EGG_COLOR);
+				PS.bgColor(x, y, getBeadData(tempx, tempy));
+			}else if (getColisionData(tempx, tempy) == SPEED_COLOR){
+				PS.border(x, y, 2);
+				PS.radius(x, y, 50);
+				PS.bgAlpha(x, y, 255);
+				PS.color(x, y, SPEED_COLOR);
+				PS.bgColor(x, y, getBeadData(tempx, tempy));
+			}else if (getColisionData(tempx, tempy) == RADAR_COLOR){
+				PS.border(x, y, 2);
+				PS.radius(x, y, 50);
+				PS.bgAlpha(x, y, 255);
+				PS.color(x, y, RADAR_COLOR);
 				PS.bgColor(x, y, getBeadData(tempx, tempy));
 			}else{
 				PS.radius(x, y, 0);
