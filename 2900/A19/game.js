@@ -88,8 +88,10 @@ var speedTime = 0
 const SPEED_MAX = 600 //10 seconds
 var radarTime = 0
 const RADAR_MAX = 720 //12 seconds
+var countdownTime = 0
+const COUNTDOWN_START = 3
 
-var playing = true;
+var playing = false;
 
 var secondsPlayed = 0;
 
@@ -124,9 +126,8 @@ PS.init = function( system, options ) {
 
 	// PS.statusText( "Game" );
 	PS.gridSize(GRID_WIDTH, GRID_HEIGHT)
-	initLevel(0)
 	PS.statusText("Egg Expedition!");
-	timer = PS.timerStart(1, onTick);
+	initLevel(0)
 
 	// Add any other initialization code you need here.
 };
@@ -145,8 +146,10 @@ function onTick(){
 		}
 		speedTime -= 1;
 	}
-	if (playing && tickCount % 60 == 0 && radarTime == 0){
-		secondsPlayed += 1;
+	if (tickCount % 60 == 0 && radarTime == 0){
+		if (playing){
+			secondsPlayed += 1;
+		}
 		//PS.statusText("Egg Expedition!");
 		showTime();
 	}
@@ -168,7 +171,12 @@ function showTime(){
 	}else{
 		var inbetween = " : "
 	}
-	PS.statusText(minutes + inbetween + seconds);
+	if (!playing){
+		var start = "Final time: "
+	}else{
+		var start = ""
+	}
+	PS.statusText(start + minutes + inbetween + seconds);
 }
 function initLevel(index){
 	//PS.fade(PS.ALL, PS.ALL, 2);
@@ -226,10 +234,32 @@ function initLevel(index){
 			}
 		}
 		setPlayerPos(playerX, playerY);
+		startTimer();
 	};
 	PS.imageLoad( "images/map_col.png", collisionLoader, 1 );	
 
 }
+
+function startTimer(){
+	countdownTime = COUNTDOWN_START;
+	if (timer != null){
+		PS.timerStop(timer);
+	}
+	timer = PS.timerStart(60, countdown)
+}
+function countdown(){
+	if (countdownTime > 0) {
+		PS.statusText("Find all the eggs as fast as you can!: " + countdownTime);
+	}else{
+		playing = true;
+		PS.timerStop(timer);
+		timer = null;
+		timer = PS.timerStart(1, onTick);
+	}
+	countdownTime -= 1;
+}
+
+
 function getBeadData(x, y){
 	return beadData[y*mapWidth + x];
 }
@@ -290,7 +320,6 @@ function collectEgg(){
 	}
 	eggCount++;
 	if (eggCount == EGG_MAX){
-		showTime()
 		playing = false;
 	}
 }
@@ -502,7 +531,9 @@ const D_KEY = 100
 
 PS.keyDown = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
-
+	if (!playing){
+		return;
+	}
 	//PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 	switch (key){
 		case UP_KEY:
