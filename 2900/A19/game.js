@@ -89,7 +89,7 @@ const SPEED_MAX = 600 //10 seconds
 var radarTime = 0
 const RADAR_MAX = 720 //12 seconds
 var countdownTime = 0
-const COUNTDOWN_START = 3
+const COUNTDOWN_START = 5
 
 var playing = false;
 
@@ -125,9 +125,12 @@ PS.init = function( system, options ) {
 	// change the string parameter as needed.
 
 	// PS.statusText( "Game" );
+	countdownTime = COUNTDOWN_START
 	PS.gridSize(GRID_WIDTH, GRID_HEIGHT)
 	PS.statusText("Egg Expedition!");
 	initLevel(0)
+
+	timer = PS.timerStart(1, onTick);
 
 	// Add any other initialization code you need here.
 };
@@ -135,6 +138,7 @@ PS.init = function( system, options ) {
 
 function onTick(){
 	//Move player if they have a velocity
+
 	if (tickCount % 4 == 0){
 		if (moveX != 0 || moveY != 0){
 			setPlayerPos(playerX + moveX, playerY + moveY);
@@ -146,12 +150,16 @@ function onTick(){
 		}
 		speedTime -= 1;
 	}
-	if (tickCount % 60 == 0 && radarTime == 0){
+	if (tickCount % 60 == 0){
 		if (playing){
 			secondsPlayed += 1;
 		}
+		if (secondsPlayed == 0){
+			countdown();
+		}else if (radarTime == 0){
+			showTime();
+		}
 		//PS.statusText("Egg Expedition!");
-		showTime();
 	}
 	if (radarTime > 0){
 		radarTime -= 1;
@@ -234,7 +242,7 @@ function initLevel(index){
 			}
 		}
 		setPlayerPos(playerX, playerY);
-		startTimer();
+		//startTimer();
 	};
 	PS.imageLoad( "images/map_col.png", collisionLoader, 1 );	
 
@@ -252,9 +260,7 @@ function countdown(){
 		PS.statusText("Find all the eggs as fast as you can!: " + countdownTime);
 	}else{
 		playing = true;
-		PS.timerStop(timer);
-		timer = null;
-		timer = PS.timerStart(1, onTick);
+		PS.statusText("0 : 00");
 	}
 	countdownTime -= 1;
 }
