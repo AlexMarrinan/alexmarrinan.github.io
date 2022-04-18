@@ -242,13 +242,21 @@ function renderCamera(){
 			if (tempy < 0 || tempy >= mapHeight || tempx < 0 || tempx >= mapWidth){
 				PS.border(x, y, 0);
 				PS.color(x, y, PS.COLOR_GRAY)
+				PS.radius(x, y, 0);
 			}else if (x == 7 && y == 7){
 				PS.color(x, y, PS.COLOR_GREEN);
-				PS.border(x, y);
+				PS.border(x, y, 2);
 				PS.radius(x, y, 50);
 				PS.bgAlpha(x, y, 255);
 				PS.bgColor(x, y, getBeadData(tempx, tempy));
+			}else if (getColisionData(tempx, tempy) == EGG_COLOR){
+				PS.border(x, y, 2);
+				PS.radius(x, y, 50);
+				PS.bgAlpha(x, y, 255);
+				PS.color(x, y, EGG_COLOR);
+				PS.bgColor(x, y, getBeadData(tempx, tempy));
 			}else{
+				PS.radius(x, y, 0);
 				PS.border(x, y, 0);
 				PS.color(x, y, getBeadData(tempx, tempy));
 			}
