@@ -85,13 +85,18 @@ var tickCount = 0;
 var eggCount = 0
 const EGG_MAX = 15
 var speedTime = 0
-const SPEED_MAX = 360
+const SPEED_MAX = 600 //10 seconds
 var radarTime = 0
-const RADAR_MAX = 4000
+const RADAR_MAX = 720 //12 seconds
+
+var playing = true;
+
+var secondsPlayed = 0;
 
 var beadData = Array(32*32).fill(0);
 var colisionData = Array(32*32).fill(0);
-var eggLocations = Array(EGG_MAX).fill([0,0]);
+var eggLocationsX = Array(EGG_MAX).fill(0);
+var eggLocationsY = Array(EGG_MAX).fill(0);
 
 PS.init = function( system, options ) {
 	// Uncomment the following code line
@@ -119,9 +124,10 @@ PS.init = function( system, options ) {
 
 	// PS.statusText( "Game" );
 	PS.gridSize(GRID_WIDTH, GRID_HEIGHT)
+	initLevel(0)
 	PS.statusText("Egg Expedition!");
 	timer = PS.timerStart(1, onTick);
-	initLevel(0)
+
 	// Add any other initialization code you need here.
 };
 
@@ -129,7 +135,9 @@ PS.init = function( system, options ) {
 function onTick(){
 	//Move player if they have a velocity
 	if (tickCount % 4 == 0){
-		setPlayerPos(playerX + moveX, playerY + moveY);
+		if (moveX != 0 || moveY != 0){
+			setPlayerPos(playerX + moveX, playerY + moveY);
+		}
 	}
 	if (speedTime > 0){
 		if ((tickCount + 2) % 4 == 0){
@@ -137,14 +145,31 @@ function onTick(){
 		}
 		speedTime -= 1;
 	}
-	if (radarTime > 0){
-		let distance = getClosestBeed(playerX, playerY);
-		PS.statusText(distance + "spaces away");
-		radarTime -= 1;
-	}else{
-		PS.statusText("Egg Expedition!");
+	if (playing && tickCount % 60 == 0 && radarTime == 0){
+		secondsPlayed += 1;
+		//PS.statusText("Egg Expedition!");
+		showTime();
 	}
+	if (radarTime > 0){
+		radarTime -= 1;
+	}else if (playing){
+		//PS.statusText("Egg Expedition!");
+	}
+	PS.statusText
 	tickCount++;
+}
+
+function showTime(){
+	let hours = Math.floor(secondsPlayed / 3600);
+	let totalSeconds = secondsPlayed % 3600;
+	let minutes = Math.floor(totalSeconds / 60);
+	let seconds = totalSeconds % 60;
+	if (seconds < 10){
+		var inbetween = " : 0"
+	}else{
+		var inbetween = " : "
+	}
+	PS.statusText(minutes + inbetween + seconds);
 }
 function initLevel(index){
 	//PS.fade(PS.ALL, PS.ALL, 2);
@@ -157,7 +182,8 @@ function initLevel(index){
 	// Called when image loads successfully
 	// [data] parameter will contain imageData
 	//PS.alpha(PS.ALL, PS.ALL, 0);
-
+	eggLocationsX.fill(null);
+	eggLocationsY.fill(null);
 	collisionLoader = function ( imageData ) {
 		var x, y, ptr, color, eggs;
 
@@ -175,10 +201,11 @@ function initLevel(index){
 					playerX = x;
 					playerY = y;
 				}
-				/*if (color == EGG_COLOR){
-					eggLocations[eggs] = [x,y];
-					eggs += 1
-				}*/
+				if (color == EGG_COLOR){
+					eggLocationsX[eggs] = x;
+					eggLocationsY[eggs] = y;
+					eggs += 1;
+				}
 				setColisionData(x, y, color);
 				//PS.data( x, y, color );*/
 				ptr += 1; // point to next value
@@ -220,15 +247,11 @@ function setColisionData(x, y, data){
 
 function setPlayerPos(x, y){
 	if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight){
-		PS.debug("Move out of bounds")
+		//PS.debug("Move out of bounds")
 		return;
 	}
 	if (getColisionData(x, y) == WALL_COLOR){
 		return;
-	}
-	if (getColisionData(x, y) == EGG_COLOR){
-		collectEgg();
-		setColisionData(x, y, EMPTY_COLOR);
 	}
 	if (getColisionData(x, y) == SPEED_COLOR){
 		collectSpeed();
@@ -240,7 +263,14 @@ function setPlayerPos(x, y){
 	}
 	playerX = x;
 	playerY = y;
-
+	if (getColisionData(x, y) == EGG_COLOR){
+		collectEgg();
+		setColisionData(x, y, EMPTY_COLOR);
+	}
+	if (radarTime > 0){
+		let distance = getClosestBeed(x, y);
+		PS.statusText("Radar: " + distance + " beads");
+	}
 	renderCamera();
 	//renderPlayer();
 }
@@ -248,35 +278,50 @@ function setPlayerPos(x, y){
 function collectEgg(){
 	//PS.debug("Found egg #" + (eggCount+1) + "! \n");
 	PS.color(eggCount, GRID_HEIGHT-1, 0x827ca6);
+	//PS.debug("PLAYER:" + playerX +", "+ playerY + "\n")
 	for (var i = 0; i < EGG_MAX; i++){
-		if (eggLocations[i] === [playerX, playerY]){
-			eggLocations[i] = null;
+		if (eggLocationsX[i] == null || eggLocationsY[i] == null){
+			continue;
+		}
+		if (eggLocationsX[i] == playerX && eggLocationsY[i] == playerY){
+			//PS.debug("Set egg location to null\n")
+			eggLocationsX[i] = null;
+			eggLocationsY[i] = null;
 		}
 	}
 	eggCount++;
 	if (eggCount == EGG_MAX){
-		PS.statusText("YOU DID IT!");
+		showTime()
+		playing = false;
 	}
 }
 
 function collectSpeed(){
-	PS.debug("Found speed powerup\n");
+	//PS.debug("Found speed powerup\n");
 	speedTime = SPEED_MAX;
 }
 
 function startRadar(){
-	PS.debug("Found radar powerup\n");
+	//PS.debug("Found radar powerup\n");
 	radarTime = RADAR_MAX;
 }
 
 function getClosestBeed(x, y){
 	var distances = Array(EGG_MAX).fill(0);
+	//PS.debug("\n\n\n");
 
 	for (var i = 0; i < EGG_MAX; i++){
-		if (eggLocations[i] != null){
-			let x2 = eggLocations[i][0];
-			let y2 = eggLocations[i][1];
-			distances[i] = Math.sqrt((x2-x)^2+(y2-y)^2);
+		if (eggLocationsX[i] != null && eggLocationsY[i] != null){
+			let x2 = eggLocationsX[i];
+			let y2 = eggLocationsY[i];
+			
+			let xdiff = Math.abs(x2-x)
+			let ydiff = Math.abs(y2-y)
+
+			//PS.debug(x2 + ', ' + y2 + '\n');
+
+			distances[i] = Math.floor(Math.sqrt(xdiff*xdiff + ydiff*ydiff));
+			//PS.debug(distances[i] + '\n');
 		}else{
 			distances[i] = null;
 		}
@@ -286,11 +331,11 @@ function getClosestBeed(x, y){
 		if (distances[i] == null){
 			continue;
 		}
-		if (lowest > distances[i]){
+		if (lowest > distances[i] && distances[i] != 0){
 			lowest = distances[i];
 		}
 	}
-	return Math.ceil(lowest);
+	return (lowest);
 }
 
 function renderCamera(){
