@@ -155,7 +155,6 @@ function onTick(){
 	}else if (playing){
 		//PS.statusText("Egg Expedition!");
 	}
-	PS.statusText
 	tickCount++;
 }
 
@@ -211,7 +210,7 @@ function initLevel(index){
 				ptr += 1; // point to next value
 			}
 		}
-		setPlayerPos(playerX, playerY);
+		PS.imageLoad( "images/map_gfx.png", graphicsLoader, 1 );	
 	};
 	graphicsLoader = function ( imageData ) {
 		var x, y, ptr, color;
@@ -226,9 +225,9 @@ function initLevel(index){
 				ptr += 1; // point to next value
 			}
 		}
+		setPlayerPos(playerX, playerY);
 	};
 	PS.imageLoad( "images/map_col.png", collisionLoader, 1 );	
-	PS.imageLoad( "images/map_gfx.png", graphicsLoader, 1 );	
 
 }
 function getBeadData(x, y){
@@ -583,4 +582,3 @@ PS.input = function( sensors, options ) {
 
 	// Add code here for when an input event is detected.
 };
-
