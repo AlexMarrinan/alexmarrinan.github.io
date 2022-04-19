@@ -127,6 +127,8 @@ PS.init = function( system, options ) {
 	// PS.statusText( "Game" );
 	countdownTime = COUNTDOWN_START
 	PS.gridSize(GRID_WIDTH, GRID_HEIGHT)
+	PS.gridColor(PS.COLOR_GRAY);
+	PS.statusColor(PS.COLOR_WHITE);
 	PS.statusText("Egg Expedition!");
 	initLevel(0)
 
