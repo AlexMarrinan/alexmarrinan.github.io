@@ -100,6 +100,11 @@ var colisionData = Array(32*32).fill(0);
 var eggLocationsX = Array(EGG_MAX).fill(0);
 var eggLocationsY = Array(EGG_MAX).fill(0);
 
+
+const RADAR_FRAMES = 10;
+var radarAnimationData = Array(15*15*RADAR_FRAMES).fill(PS.COLOR_WHITE);
+var radarImageIndex = 0;
+
 PS.init = function( system, options ) {
 	// Uncomment the following code line
 	// to verify operation:
@@ -131,7 +136,7 @@ PS.init = function( system, options ) {
 	PS.statusColor(PS.COLOR_WHITE);
 	PS.statusText("Egg Expedition!");
 	initLevel(0)
-
+	PS.border(PS.ALL, PS.ALL, 0);
 	timer = PS.timerStart(1, onTick);
 
 	// Add any other initialization code you need here.
@@ -165,6 +170,7 @@ function onTick(){
 	}
 	if (radarTime > 0){
 		radarTime -= 1;
+		radarAnimation();
 	}else if (playing){
 		//PS.statusText("Egg Expedition!");
 	}
@@ -194,6 +200,8 @@ function initLevel(index){
 	//PS.data(PS.ALL, PS.ALL, EMPTY);
 	var graphicsLoader;
 	var collisionLoader;
+	var radarLoader;
+	var radarLoader2;
 	//beadData.fill(0);
 	// Image loading function
 	// Called when image loads successfully
@@ -228,7 +236,7 @@ function initLevel(index){
 				ptr += 1; // point to next value
 			}
 		}
-		PS.imageLoad( "images/map_gfx.png", graphicsLoader, 1 );	
+		PS.imageLoad( "images/map_gfx.png", graphicsLoader, 1 );
 	};
 	graphicsLoader = function ( imageData ) {
 		var x, y, ptr, color;
@@ -245,9 +253,28 @@ function initLevel(index){
 		}
 		setPlayerPos(playerX, playerY);
 		//startTimer();
+		PS.imageLoad("images/radar1.png", radarLoader, 1)
 	};
-	PS.imageLoad( "images/map_col.png", collisionLoader, 1 );	
+	radarLoader = function (imageData) {
+		var x, y, ptr, color;
+		ptr = 0;
+		for ( y = 0; y < GRID_HEIGHT - 1; y += 1 ) {
+			for ( x = 0; x < GRID_WIDTH; x += 1 ) {
+				color = imageData.data[ ptr ]; // get color
+				//PS.debug(color + "\n");
+				setRadarData(x, y, radarImageIndex, color);
+				ptr += 1; // point to next value
+			}
+		}
+		radarImageIndex++;
+		if (radarImageIndex >= RADAR_FRAMES){
+			radarImageIndex = 0;
+			return;
+		}
+		PS.imageLoad("images/radar"+ (radarImageIndex+1) + ".png", radarLoader, 1)
 
+	}
+	PS.imageLoad( "images/map_col.png", collisionLoader, 1 );	
 }
 
 function startTimer(){
@@ -281,6 +308,13 @@ function getColisionData(x, y){
 function setColisionData(x, y, data){
 	colisionData[y*mapWidth + x] = data;
 }
+function getRadarData(x, y, i){
+	return 	radarAnimationData[i*15*15 + y*15 + x];
+}
+function setRadarData(x, y, i, data){
+	radarAnimationData[i*15*15 + y*15 + x] = data;
+}
+
 
 function setPlayerPos(x, y){
 	if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight){
@@ -314,7 +348,11 @@ function setPlayerPos(x, y){
 
 function collectEgg(){
 	//PS.debug("Found egg #" + (eggCount+1) + "! \n");
-	PS.color(eggCount, GRID_HEIGHT-1, 0x827ca6);
+	PS.color(eggCount, GRID_HEIGHT-1, EGG_COLOR);
+	PS.radius(eggCount, GRID_HEIGHT-1, 50);
+	PS.bgColor(eggCount, GRID_HEIGHT-1, PS.COLOR_WHITE);
+	PS.bgAlpha(eggCount, GRID_HEIGHT-1, 255);
+	PS.border(eggCount, GRID_HEIGHT-1, 2);
 	//PS.debug("PLAYER:" + playerX +", "+ playerY + "\n")
 	for (var i = 0; i < EGG_MAX; i++){
 		if (eggLocationsX[i] == null || eggLocationsY[i] == null){
@@ -340,6 +378,7 @@ function collectSpeed(){
 function startRadar(){
 	//PS.debug("Found radar powerup\n");
 	radarTime = RADAR_MAX;
+	radarImageIndex = 0;
 }
 
 function getClosestBeed(x, y){
@@ -404,13 +443,13 @@ function renderCamera(){
 				PS.bgColor(x, y, getBeadData(tempx, tempy));
 			}else if (getColisionData(tempx, tempy) == SPEED_COLOR){
 				PS.border(x, y, 2);
-				PS.radius(x, y, 50);
+				PS.radius(x, y, 20);
 				PS.bgAlpha(x, y, 255);
 				PS.color(x, y, SPEED_COLOR);
 				PS.bgColor(x, y, getBeadData(tempx, tempy));
 			}else if (getColisionData(tempx, tempy) == RADAR_COLOR){
 				PS.border(x, y, 2);
-				PS.radius(x, y, 50);
+				PS.radius(x, y, 20);
 				PS.bgAlpha(x, y, 255);
 				PS.color(x, y, RADAR_COLOR);
 				PS.bgColor(x, y, getBeadData(tempx, tempy));
@@ -428,6 +467,29 @@ function renderCamera(){
 	//PS.debug(y+ "\n");
 }
 
+
+function radarAnimation(){
+	if (tickCount % 4 != 0){
+		return;
+	}
+	if (radarImageIndex >= RADAR_FRAMES){
+		return;
+	}
+	PS.gridPlane(1);
+	for (var x = 0; x < 15; x++){
+		for (var y = 0; y < 15; y++){
+			let color = getRadarData(x, y, radarImageIndex);
+			if (color != PS.COLOR_WHITE){
+				PS.color(x, y, color);
+				PS.alpha(x, y, 128);
+			}else{
+				PS.alpha(x, y, 0);
+			}
+		}
+	}
+	PS.gridPlane(0);
+	radarImageIndex++;
+}
 /*
 PS.touch ( x, y, data, options )
 Called when the left mouse button is clicked over bead(x, y), or when bead(x, y) is touched.
@@ -468,7 +530,7 @@ PS.release = function( x, y, data, options ) {
 
 /*
 PS.enter ( x, y, button, data, options )
-Called when the mouse cursor/touch enters bead(x, y).
+Called when the mouse cursor/touch enters bead(x, y).collectE
 This function doesn't have to do anything. Any value returned is ignored.
 [x : Number] = zero-based x-position (column) of the bead on the grid.
 [y : Number] = zero-based y-position (row) of the bead on the grid.
