@@ -86,6 +86,7 @@ var eggCount = 0
 const EGG_MAX = 15
 var speedTime = 0
 const SPEED_MAX = 600 //10 seconds
+var speedColor = false;
 var radarTime = 0
 const RADAR_MAX = 720 //12 seconds
 var countdownTime = 0
@@ -135,6 +136,7 @@ PS.init = function( system, options ) {
 	PS.gridColor(PS.COLOR_GRAY);
 	PS.statusColor(PS.COLOR_WHITE);
 	PS.statusText("Egg Expedition!");
+	PS.fade(7, 7, 15);
 	initLevel(0)
 	PS.border(PS.ALL, PS.ALL, 0);
 	timer = PS.timerStart(1, onTick);
@@ -145,7 +147,6 @@ PS.init = function( system, options ) {
 
 function onTick(){
 	//Move player if they have a velocity
-
 	if (tickCount % 4 == 0){
 		if (moveX != 0 || moveY != 0){
 			setPlayerPos(playerX + moveX, playerY + moveY);
@@ -155,6 +156,8 @@ function onTick(){
 		if ((tickCount + 2) % 4 == 0){
 			setPlayerPos(playerX + moveX, playerY + moveY);
 		}
+		speedAnimation()
+		//PS.debug(speedTime + "\n");
 		speedTime -= 1;
 	}
 	if (tickCount % 60 == 0){
@@ -201,7 +204,6 @@ function initLevel(index){
 	var graphicsLoader;
 	var collisionLoader;
 	var radarLoader;
-	var radarLoader2;
 	//beadData.fill(0);
 	// Image loading function
 	// Called when image loads successfully
@@ -338,6 +340,24 @@ function setPlayerPos(x, y){
 		collectEgg();
 		setColisionData(x, y, EMPTY_COLOR);
 	}
+	if (speedTime > 0){
+		var xMin = x-1
+		var xMax = x+1
+		var yMin = y-1
+		var yMax = y+1
+
+		for (var xTemp = xMin; xTemp <= xMax; xTemp++){	
+			for (var yTemp = yMin; yTemp <= yMax; yTemp++){
+				if (xTemp < 0 || xTemp >= mapWidth || yTemp < 0 || yTemp >= mapHeight){
+					continue;
+				}			
+				if (getColisionData(xTemp, yTemp) == EGG_COLOR){
+					collectEgg();
+					setColisionData(xTemp, yTemp, EMPTY_COLOR);
+				}
+			}
+		}
+	}
 	if (radarTime > 0){
 		let distance = getClosestBeed(x, y);
 		PS.statusText("Radar: " + distance + " beads");
@@ -373,6 +393,7 @@ function collectEgg(){
 function collectSpeed(){
 	//PS.debug("Found speed powerup\n");
 	speedTime = SPEED_MAX;
+	
 }
 
 function startRadar(){
@@ -430,7 +451,9 @@ function renderCamera(){
 				PS.color(x, y, PS.COLOR_GRAY)
 				PS.radius(x, y, 0);
 			}else if (x == 7 && y == 7){
-				PS.color(x, y, PS.COLOR_GREEN);
+				if (speedTime <= 0){
+					PS.color(x, y, PLAYER_COLOR);
+				}
 				PS.border(x, y, 2);
 				PS.radius(x, y, 50);
 				PS.bgAlpha(x, y, 255);
@@ -480,7 +503,7 @@ function radarAnimation(){
 		for (var y = 0; y < 15; y++){
 			let color = getRadarData(x, y, radarImageIndex);
 			if (color != PS.COLOR_WHITE){
-				PS.color(x, y, color);
+				PS.color(x, y, PS.COLOR_ORANGE);
 				PS.alpha(x, y, 128);
 			}else{
 				PS.alpha(x, y, 0);
@@ -489,6 +512,23 @@ function radarAnimation(){
 	}
 	PS.gridPlane(0);
 	radarImageIndex++;
+}
+
+function speedAnimation(){
+	if (speedTime % 100 == 0){
+		PS.color(7, 7, PS.COLOR_BLUE);
+	}else if (speedTime % 100 == 80){
+		PS.color(7, 7, PS.COLOR_VIOLET);
+	}
+	else if (speedTime % 100 == 60){
+		PS.color(7, 7, PS.COLOR_RED);
+	}
+	else if (speedTime % 100 == 40){
+		PS.color(7, 7, PS.COLO__YELLOW);
+	}
+	else if (speedTime % 100 == 20){
+		PS.color(7, 7, PLAYER_COLOR);
+	}
 }
 /*
 PS.touch ( x, y, data, options )
