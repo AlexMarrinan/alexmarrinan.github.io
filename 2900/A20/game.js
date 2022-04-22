@@ -50,16 +50,6 @@ Any value returned is ignored.
 const GRID_HEIGHT = 16
 const GRID_WIDTH = 15
 
-//tile ids
-const EMPTY = 0;
-const WALL = 1;
-const EXIT = 2;
-const START = 3;
-const SPIKE = 4;
-const TRANSPARENT = 5;
-const KEY = 6;
-const LOCK = 7;
-
 //color ids for colision map
 const BACKGROUND_COLOR = 0x827ca6
 const EMPTY_COLOR = PS.COLOR_WHITE
@@ -450,6 +440,18 @@ function renderCamera(){
 				PS.border(x, y, 0);
 				PS.color(x, y, PS.COLOR_GRAY)
 				PS.radius(x, y, 0);
+			}else if (getColisionData(tempx, tempy) == WALL_COLOR){
+				//PS.gridPlane(1);
+
+				wallBorder(x, y, tempx, tempy);
+
+				//PS.borderAlpha(x, y, 50);
+
+
+				//PS.gridPlane(0);
+				PS.bgAlpha(x, y, 255);
+				PS.radius(x, y, 0);
+				PS.color(x, y, getBeadData(tempx, tempy));
 			}else if (x == 7 && y == 7){
 				if (speedTime <= 0){
 					PS.color(x, y, PLAYER_COLOR);
@@ -490,6 +492,27 @@ function renderCamera(){
 	//PS.debug(y+ "\n");
 }
 
+function wallBorder(x, y, tempx, tempy){
+	PS.borderColor(x, y, WALL_COLOR);
+	var top = 1;
+	var bottom = 1;
+	var left = 1;
+	var right = 1;
+
+	if (getColisionData(tempx+1, tempy) == WALL_COLOR){
+		right = 0;
+	}
+	if (getColisionData(tempx-1, tempy) == WALL_COLOR){
+		left = 0;
+	}
+	if (getColisionData(tempx, tempy+1) == WALL_COLOR){
+		bottom = 0;
+	}
+	if (getColisionData(tempx, tempy-1) == WALL_COLOR){
+		top = 0;
+	}
+	PS.border(x,y, {top : top, left : left, bottom : bottom, right : right, equal: false});
+}
 
 function radarAnimation(){
 	if (tickCount % 4 != 0){
@@ -498,7 +521,7 @@ function radarAnimation(){
 	if (radarImageIndex >= RADAR_FRAMES){
 		return;
 	}
-	PS.gridPlane(1);
+	PS.gridPlane(2);
 	for (var x = 0; x < 15; x++){
 		for (var y = 0; y < 15; y++){
 			let color = getRadarData(x, y, radarImageIndex);
