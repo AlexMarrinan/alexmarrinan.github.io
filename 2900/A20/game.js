@@ -58,9 +58,6 @@ const EGG_COLOR = 255
 const SPEED_COLOR = 16711680
 const RADAR_COLOR = 16756224
 const PLAYER_COLOR = 5046016
-let mapWidth = 16;
-let mapHeight = 16;
-
 
 //Current direction the player is moving, not moving when zero
 var moveX = 0;
@@ -83,14 +80,23 @@ var countdownTime = 0
 const COUNTDOWN_START = 5
 
 var playing = false;
-
 var secondsPlayed = 0;
 
-var beadData = Array(32*32).fill(0);
-var colisionData = Array(32*32).fill(0);
-var eggLocationsX = Array(EGG_MAX).fill(0);
-var eggLocationsY = Array(EGG_MAX).fill(0);
+var inLevelSelect = true;
+var currentLevelIndex = null;
+var levelCount = 2;
+var levelNames = ["Ol' Reliable Village", "Heaven's Gate"]
 
+var beadData = Array.from(Array(levelCount), () => new Array(32*32).fill(0));
+var colisionData = Array.from(Array(levelCount), () => new Array(32*32).fill(0));
+var eggLocationsX = Array.from(Array(levelCount), () => new Array(EGG_MAX));
+var eggLocationsY = Array.from(Array(levelCount), () => new Array(EGG_MAX));
+
+var mapHeights = Array(levelCount).fill(0);
+var mapWidths = Array(levelCount).fill(0);
+
+var playerStartX = Array(levelCount).fill(0);
+var playerStartY = Array(levelCount).fill(0);
 
 const RADAR_FRAMES = 10;
 var radarAnimationData = Array(15*15*RADAR_FRAMES).fill(PS.COLOR_WHITE);
@@ -121,7 +127,9 @@ PS.init = function( system, options ) {
 	// change the string parameter as needed.
 
 	// PS.statusText( "Game" );
-	countdownTime = COUNTDOWN_START
+	initLevels(0)
+	PS.statusText("Select Level")
+	/*countdownTime = COUNTDOWN_START
 	PS.gridSize(GRID_WIDTH, GRID_HEIGHT)
 	PS.gridColor(PS.COLOR_GRAY);
 	PS.statusColor(PS.COLOR_WHITE);
@@ -130,11 +138,41 @@ PS.init = function( system, options ) {
 	initLevel(0)
 	PS.border(PS.ALL, PS.ALL, 0);
 	timer = PS.timerStart(1, onTick);
-
+*/
 	// Add any other initialization code you need here.
 };
+function levelSelect(){
+	inLevelSelect = true;
+	PS.gridSize(levelCount, 1);
+	//PS.gridFade(20);
+	PS.gridColor(PS.COLOR_GRAY);
+	PS.statusColor(PS.COLOR_WHITE);
+	PS.alpha(PS.ALL, PS.ALL, 255);
 
+	for (let i = 0; i < levelCount; i++){
+		if (i == currentLevelIndex){
+			PS.color(i, 0, PLAYER_COLOR);
+		}else{
+			PS.color(i, 0, PS.COLOR_WHITE);
+		}
+		//PS.glyph(i, 0, (i+1).toString());
+	}
+}
 
+function initWorld(){
+	inLevelSelect = false
+	countdownTime = COUNTDOWN_START
+	PS.gridSize(GRID_WIDTH, GRID_HEIGHT)
+	PS.gridColor(PS.COLOR_GRAY);
+	PS.statusColor(PS.COLOR_WHITE);
+	PS.statusText("Egg Expedition!");
+	PS.fade(7, 7, 15);
+	PS.border(PS.ALL, PS.ALL, 0);
+	playerX = playerStartX[currentLevelIndex];
+	playerY = playerStartY[currentLevelIndex];
+	setPlayerPos(playerX, playerY);
+	timer = PS.timerStart(1, onTick);
+}
 function onTick(){
 	//Move player if they have a velocity
 	if (tickCount % 4 == 0){
@@ -187,66 +225,79 @@ function showTime(){
 	}
 	PS.statusText(start + minutes + inbetween + seconds);
 }
-function initLevel(index){
+function initLevels(index){
 	//PS.fade(PS.ALL, PS.ALL, 2);
 	//PS.color(PS.ALL, PS.ALL, PS.COLOR_GRAY)
 	//PS.data(PS.ALL, PS.ALL, EMPTY);
 	var graphicsLoader;
 	var collisionLoader;
-	var radarLoader;
 	//beadData.fill(0);
 	// Image loading function
 	// Called when image loads successfully
 	// [data] parameter will contain imageData
 	//PS.alpha(PS.ALL, PS.ALL, 0);
-	eggLocationsX.fill(null);
-	eggLocationsY.fill(null);
+
 	collisionLoader = function ( imageData ) {
 		var x, y, ptr, color, eggs;
 
-		mapHeight = imageData.height
-		mapWidth = imageData.width
+		mapHeights[index] = imageData.height
+		mapWidths[index] = imageData.width
 
-		colisionData = Array(mapWidth*mapHeight).fill(PS.COLOR_WHITE);
+		colisionData[index] = Array(mapWidths[index]*mapHeights[index]).fill(PS.COLOR_WHITE);
 		ptr = 0; // init pointer into data array
 		eggs = 0;
-		for ( y = 0; y < mapHeight; y += 1 ) {
-			for ( x = 0; x < mapWidth; x += 1 ) {
+		for ( y = 0; y < mapHeights[index]; y += 1 ) {
+			for ( x = 0; x < mapWidths[index]; x += 1 ) {
 				color = imageData.data[ ptr ]; // get color
 				//PS.debug(color + "\n");
 				if (color == PLAYER_COLOR){//green
-					playerX = x;
-					playerY = y;
+					playerStartX[index] = x;
+					playerStartY[index] = y;
 				}
 				if (color == EGG_COLOR){
-					eggLocationsX[eggs] = x;
-					eggLocationsY[eggs] = y;
+					eggLocationsX[index][eggs] = x;
+					eggLocationsY[index][eggs] = y;
 					eggs += 1;
 				}
-				setColisionData(x, y, color);
+				setColisionData(x, y, color, index);
 				//PS.data( x, y, color );*/
 				ptr += 1; // point to next value
 			}
 		}
-		PS.imageLoad( "images/map_gfx.png", graphicsLoader, 1 );
-	};
+		PS.imageLoad( "images/map"+(index+1)+"_gfx.png", graphicsLoader, 1 );
+	}
 	graphicsLoader = function ( imageData ) {
 		var x, y, ptr, color;
 		//PS.debug("yep")
-		beadData = Array(mapWidth*mapHeight).fill(PS.COLOR_WHITE);
+		beadData[index] = Array(mapWidths[index]*mapHeights[index]);
+
 		//PS.debug(mapHeight + " " + mapWidth)
 		ptr = 0; // init pointer into data array
-		for ( y = 0; y < mapHeight; y += 1 ) {
-			for ( x = 0; x < mapWidth; x += 1 ) {
+		for ( y = 0; y < mapHeights[index]; y += 1 ) {
+			for ( x = 0; x < mapWidths[index]; x += 1 ) {
 				color = imageData.data[ ptr ]; // get color
-				setBeadData(x, y, color);
+
+				setBeadData(x, y, color, index);
+				if (index == 1){
+					//PS.debug(getBeadData(x, y, index));
+				}
 				ptr += 1; // point to next value
 			}
 		}
-		setPlayerPos(playerX, playerY);
+		index++;
+		if (index < levelCount){
+			initLevels(index);
+		}else{
+			loadRadar()
+		}
+		//setPlayerPos(playerX, playerY);
 		//startTimer();
-		PS.imageLoad("images/radar1.png", radarLoader, 1)
 	};
+	PS.imageLoad( "images/map"+(index+1)+"_col.png", collisionLoader, 1 );	
+}
+
+function loadRadar(){
+	var radarLoader;
 	radarLoader = function (imageData) {
 		var x, y, ptr, color;
 		ptr = 0;
@@ -261,14 +312,13 @@ function initLevel(index){
 		radarImageIndex++;
 		if (radarImageIndex >= RADAR_FRAMES){
 			radarImageIndex = 0;
+			levelSelect();
 			return;
 		}
 		PS.imageLoad("images/radar"+ (radarImageIndex+1) + ".png", radarLoader, 1)
-
 	}
-	PS.imageLoad( "images/map_col.png", collisionLoader, 1 );	
+	PS.imageLoad("images/radar"+ (radarImageIndex+1) + ".png", radarLoader, 1)
 }
-
 function startTimer(){
 	countdownTime = COUNTDOWN_START;
 	if (timer != null){
@@ -287,48 +337,48 @@ function countdown(){
 }
 
 
-function getBeadData(x, y){
-	return beadData[y*mapWidth + x];
+function getBeadData(x, y, level){
+	return beadData[level][y*mapWidths[level] + x];
 }
-function setBeadData(x, y, data){
-	beadData[y*mapWidth + x] = data;
+function setBeadData(x, y, data, level){
+	beadData[level][y*mapWidths[level] + x] = data;
 }
 
-function getColisionData(x, y){
-	return colisionData[y*mapWidth + x];
+function getColisionData(x, y, level){
+	return colisionData[level][y*mapWidths[level] + x];
 }
-function setColisionData(x, y, data){
-	colisionData[y*mapWidth + x] = data;
+function setColisionData(x, y, data, level){
+	colisionData[level][y*mapWidths[level] + x] = data;
 }
 function getRadarData(x, y, i){
 	return 	radarAnimationData[i*15*15 + y*15 + x];
 }
-function setRadarData(x, y, i, data){
+function setRadarData(x, y, i, data, level){
 	radarAnimationData[i*15*15 + y*15 + x] = data;
 }
 
 
 function setPlayerPos(x, y){
-	if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight){
+	if (x < 0 || x >= mapWidths[currentLevelIndex] || y < 0 || y >= mapHeights[currentLevelIndex]){
 		//PS.debug("Move out of bounds")
 		return;
 	}
-	if (getColisionData(x, y) == WALL_COLOR){
+	if (getColisionData(x, y, currentLevelIndex) == WALL_COLOR){
 		return;
 	}
-	if (getColisionData(x, y) == SPEED_COLOR){
+	if (getColisionData(x, y, currentLevelIndex) == SPEED_COLOR){
 		collectSpeed();
-		setColisionData(x, y, EMPTY_COLOR);
+		setColisionData(x, y, EMPTY_COLOR, currentLevelIndex);
 	}
-	if (getColisionData(x, y) == RADAR_COLOR){
+	if (getColisionData(x, y, currentLevelIndex) == RADAR_COLOR){
 		startRadar();
-		setColisionData(x, y, EMPTY_COLOR);
+		setColisionData(x, y, EMPTY_COLOR, currentLevelIndex);
 	}
 	playerX = x;
 	playerY = y;
-	if (getColisionData(x, y) == EGG_COLOR){
-		collectEgg();
-		setColisionData(x, y, EMPTY_COLOR);
+	if (getColisionData(x, y, currentLevelIndex) == EGG_COLOR){
+		collectEgg(x, y);
+		setColisionData(x, y, EMPTY_COLOR, currentLevelIndex);
 	}
 	if (speedTime > 0){
 		var xMin = x-1
@@ -338,12 +388,12 @@ function setPlayerPos(x, y){
 
 		for (var xTemp = xMin; xTemp <= xMax; xTemp++){	
 			for (var yTemp = yMin; yTemp <= yMax; yTemp++){
-				if (xTemp < 0 || xTemp >= mapWidth || yTemp < 0 || yTemp >= mapHeight){
+				if (xTemp < 0 || xTemp >= mapWidths[currentLevelIndex] || yTemp < 0 || yTemp >= mapHeights[currentLevelIndex]){
 					continue;
 				}			
-				if (getColisionData(xTemp, yTemp) == EGG_COLOR){
-					collectEgg();
-					setColisionData(xTemp, yTemp, EMPTY_COLOR);
+				if (getColisionData(xTemp, yTemp, currentLevelIndex) == EGG_COLOR){
+					collectEgg(xTemp, yTemp);
+					setColisionData(xTemp, yTemp, EMPTY_COLOR, currentLevelIndex);
 				}
 			}
 		}
@@ -356,22 +406,25 @@ function setPlayerPos(x, y){
 	//renderPlayer();
 }
 
-function collectEgg(){
+function collectEgg(x, y){
 	//PS.debug("Found egg #" + (eggCount+1) + "! \n");
 	PS.color(eggCount, GRID_HEIGHT-1, EGG_COLOR);
 	PS.radius(eggCount, GRID_HEIGHT-1, 50);
 	PS.bgColor(eggCount, GRID_HEIGHT-1, PS.COLOR_WHITE);
 	PS.bgAlpha(eggCount, GRID_HEIGHT-1, 255);
 	PS.border(eggCount, GRID_HEIGHT-1, 2);
+	//PS.debug("XY: " +x + ", " + y + "\n");
 	//PS.debug("PLAYER:" + playerX +", "+ playerY + "\n")
 	for (var i = 0; i < EGG_MAX; i++){
-		if (eggLocationsX[i] == null || eggLocationsY[i] == null){
+		if (eggLocationsX[currentLevelIndex][i] == null || eggLocationsY[currentLevelIndex][i] == null){
 			continue;
 		}
-		if (eggLocationsX[i] == playerX && eggLocationsY[i] == playerY){
+
+
+		if (eggLocationsX[currentLevelIndex][i] == x && eggLocationsY[currentLevelIndex][i] == y){
 			//PS.debug("Set egg location to null\n")
-			eggLocationsX[i] = null;
-			eggLocationsY[i] = null;
+			eggLocationsX[currentLevelIndex][i] = null;
+			eggLocationsY[currentLevelIndex][i] = null;
 		}
 	}
 	eggCount++;
@@ -390,6 +443,7 @@ function startRadar(){
 	//PS.debug("Found radar powerup\n");
 	radarTime = RADAR_MAX;
 	radarImageIndex = 0;
+	//PS.debug(eggLocationsX[currentLevelIndex] + ", " + eggLocationsY[currentLevelIndex] + "\n")
 }
 
 function getClosestBeed(x, y){
@@ -397,9 +451,9 @@ function getClosestBeed(x, y){
 	//PS.debug("\n\n\n");
 
 	for (var i = 0; i < EGG_MAX; i++){
-		if (eggLocationsX[i] != null && eggLocationsY[i] != null){
-			let x2 = eggLocationsX[i];
-			let y2 = eggLocationsY[i];
+		if (eggLocationsX[currentLevelIndex][i] != null && eggLocationsY[currentLevelIndex][i] != null){
+			let x2 = eggLocationsX[currentLevelIndex][i];
+			let y2 = eggLocationsY[currentLevelIndex][i];
 			
 			let xdiff = Math.abs(x2-x)
 			let ydiff = Math.abs(y2-y)
@@ -417,7 +471,7 @@ function getClosestBeed(x, y){
 		if (distances[i] == null){
 			continue;
 		}
-		if (lowest > distances[i] && distances[i] != 0){
+		if (lowest > distances[i]){
 			lowest = distances[i];
 		}
 	}
@@ -436,22 +490,18 @@ function renderCamera(){
 
 	for ( var tempy = minY; tempy <= maxY; tempy += 1 ) {
 		for ( var tempx = minX; tempx <= maxX; tempx += 1 ) {
-			if (tempy < 0 || tempy >= mapHeight || tempx < 0 || tempx >= mapWidth){
+			if (tempy < 0 || tempy >= mapHeights[currentLevelIndex] || tempx < 0 || tempx >= mapWidths[currentLevelIndex]){
 				PS.border(x, y, 0);
 				PS.color(x, y, PS.COLOR_GRAY)
 				PS.radius(x, y, 0);
-			}else if (getColisionData(tempx, tempy) == WALL_COLOR){
+			}else if (getColisionData(tempx, tempy, currentLevelIndex) == WALL_COLOR){
 				//PS.gridPlane(1);
-
-				wallBorder(x, y, tempx, tempy);
-
+				wallBorder(x, y, tempx, tempy, currentLevelIndex);
 				//PS.borderAlpha(x, y, 50);
-
-
 				//PS.gridPlane(0);
 				PS.bgAlpha(x, y, 255);
 				PS.radius(x, y, 0);
-				PS.color(x, y, getBeadData(tempx, tempy));
+				PS.color(x, y, getBeadData(tempx, tempy, currentLevelIndex));
 			}else if (x == 7 && y == 7){
 				if (speedTime <= 0){
 					PS.color(x, y, PLAYER_COLOR);
@@ -459,29 +509,29 @@ function renderCamera(){
 				PS.border(x, y, 2);
 				PS.radius(x, y, 50);
 				PS.bgAlpha(x, y, 255);
-				PS.bgColor(x, y, getBeadData(tempx, tempy));
-			}else if (getColisionData(tempx, tempy) == EGG_COLOR){
+				PS.bgColor(x, y, getBeadData(tempx, tempy, currentLevelIndex));
+			}else if (getColisionData(tempx, tempy, currentLevelIndex) == EGG_COLOR){
 				PS.border(x, y, 2);
 				PS.radius(x, y, 50);
 				PS.bgAlpha(x, y, 255);
 				PS.color(x, y, EGG_COLOR);
-				PS.bgColor(x, y, getBeadData(tempx, tempy));
-			}else if (getColisionData(tempx, tempy) == SPEED_COLOR){
+				PS.bgColor(x, y, getBeadData(tempx, tempy, currentLevelIndex));
+			}else if (getColisionData(tempx, tempy, currentLevelIndex) == SPEED_COLOR){
 				PS.border(x, y, 2);
 				PS.radius(x, y, 20);
 				PS.bgAlpha(x, y, 255);
 				PS.color(x, y, SPEED_COLOR);
-				PS.bgColor(x, y, getBeadData(tempx, tempy));
-			}else if (getColisionData(tempx, tempy) == RADAR_COLOR){
+				PS.bgColor(x, y, getBeadData(tempx, tempy, currentLevelIndex));
+			}else if (getColisionData(tempx, tempy, currentLevelIndex) == RADAR_COLOR){
 				PS.border(x, y, 2);
 				PS.radius(x, y, 20);
 				PS.bgAlpha(x, y, 255);
 				PS.color(x, y, RADAR_COLOR);
-				PS.bgColor(x, y, getBeadData(tempx, tempy));
+				PS.bgColor(x, y, getBeadData(tempx, tempy, currentLevelIndex));
 			}else{
 				PS.radius(x, y, 0);
 				PS.border(x, y, 0);
-				PS.color(x, y, getBeadData(tempx, tempy));
+				PS.color(x, y, getBeadData(tempx, tempy, currentLevelIndex));
 			}
 			x += 1;
 		}
@@ -492,23 +542,23 @@ function renderCamera(){
 	//PS.debug(y+ "\n");
 }
 
-function wallBorder(x, y, tempx, tempy){
+function wallBorder(x, y, tempx, tempy, level){
 	PS.borderColor(x, y, WALL_COLOR);
 	var top = 1;
 	var bottom = 1;
 	var left = 1;
 	var right = 1;
 
-	if (getColisionData(tempx+1, tempy) == WALL_COLOR){
+	if (getColisionData(tempx+1, tempy, level) == WALL_COLOR){
 		right = 0;
 	}
-	if (getColisionData(tempx-1, tempy) == WALL_COLOR){
+	if (getColisionData(tempx-1, tempy, level) == WALL_COLOR){
 		left = 0;
 	}
-	if (getColisionData(tempx, tempy+1) == WALL_COLOR){
+	if (getColisionData(tempx, tempy+1, level) == WALL_COLOR){
 		bottom = 0;
 	}
-	if (getColisionData(tempx, tempy-1) == WALL_COLOR){
+	if (getColisionData(tempx, tempy-1, level) == WALL_COLOR){
 		top = 0;
 	}
 	PS.border(x,y, {top : top, left : left, bottom : bottom, right : right, equal: false});
@@ -661,14 +711,51 @@ const A_KEY = 97
 const S_KEY = 115
 const D_KEY = 100
 
+const SPACE_KEY = 32
+
 
 PS.keyDown = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
-	if (!playing){
+	if (!playing && !inLevelSelect){
 		return;
+	}
+	if (inLevelSelect){
+		switch (key){
+			case SPACE_KEY:
+				if (currentLevelIndex == null){
+					break;
+				}
+				initWorld();
+				break;
+			case LEFT_KEY:
+			case A_KEY:
+				if (currentLevelIndex == null){
+					currentLevelIndex = 0;
+				}
+				if (currentLevelIndex > 0){
+					currentLevelIndex--;
+				}
+				PS.statusText("Select Level: " + levelNames[currentLevelIndex]);
+				levelSelect()
+				break;
+			case RIGHT_KEY:
+			case D_KEY:
+				if (currentLevelIndex == null){
+					currentLevelIndex = 0;
+				}
+				if (currentLevelIndex < levelCount - 1){
+					currentLevelIndex++;
+				}
+				PS.statusText("Select Level: " + levelNames[currentLevelIndex]);
+				levelSelect()
+				break;
+		}
 	}
 	//PS.debug( "PS.keyDown(): key=" + key + ", shift=" + shift + ", ctrl=" + ctrl + "\n" );
 	switch (key){
+		case SPACE_KEY:
+			//miniMap();
+			break;
 		case UP_KEY:
 		case W_KEY:
 			moveY = -1;
