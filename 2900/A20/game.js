@@ -91,7 +91,7 @@ var secondsPlayed = 0;
 var inLevelSelect = true;
 var currentLevelIndex = null;
 var levelCount = 2;
-var levelNames = ["Ol' Reliable Village", "Heaven's Gate"]
+var levelNames = ["Ol' Reliable Village", "In the Clouds"]
 
 var beadData = Array.from(Array(levelCount), () => new Array(32*32).fill(0));
 var colisionData = Array.from(Array(levelCount), () => new Array(32*32).fill(0));
