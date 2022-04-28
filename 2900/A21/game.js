@@ -98,6 +98,8 @@ var colisionData = Array.from(Array(levelCount), () => new Array(32*32).fill(0))
 var eggLocationsX = Array.from(Array(levelCount), () => new Array(EGG_MAX));
 var eggLocationsY = Array.from(Array(levelCount), () => new Array(EGG_MAX));
 
+var eggsX = Array(EGG_MAX).fill(0);
+var eggsY = Array(EGG_MAX).fill(0);
 var mapHeights = Array(levelCount).fill(0);
 var mapWidths = Array(levelCount).fill(0);
 
@@ -169,19 +171,42 @@ function levelSelect(){
 function initWorld(){
 	inLevelSelect = false
 	countdownTime = COUNTDOWN_START
+	secondsPlayed = 0;
 	PS.gridSize(GRID_WIDTH, GRID_HEIGHT)
 	PS.borderColor(PS.ALL, PS.ALL, WALL_COLOR);
 	PS.gridColor(PS.COLOR_GRAY);
 	PS.statusColor(PS.COLOR_WHITE);
-	PS.statusText("Egg Expedition!");
 	PS.border(PS.ALL, PS.ALL, 0);
+	//reset all egg locations
+	for (let x = 0; x < mapWidths[currentLevelIndex]; x++){
+		for (let y = 0; y < mapHeights[currentLevelIndex]; y++){
+			if (getColisionData(x, y, currentLevelIndex) == EGG_COLOR){
+				setColisionData(x, y, EMPTY_COLOR, currentLevelIndex);
+			}
+		}
+	}
+	//spawn new eggs
+	for (let i = 0; i < EGG_MAX; i++){
+		//PS.debug("new egg: " + i + "\n")
+		eggsX[i] = eggLocationsX[currentLevelIndex][i]
+		eggsY[i] = eggLocationsY[currentLevelIndex][i]
+		setColisionData(eggsX[i], eggsY[i], EGG_COLOR, currentLevelIndex);
+	}
 	playerX = playerStartX[currentLevelIndex];
 	playerY = playerStartY[currentLevelIndex];
 	setPlayerPos(playerX, playerY);
-	timer = PS.timerStart(1, onTick);
+
+	if (timer == null){
+		//PS.debug("startng timer...")
+		timer = PS.timerStart(1, onTick);
+	}
+	//PS.debug("timer started...")
+
 }
 function onTick(){
 	//Move player if they have a velocity
+	//PS.debug("timer running...")
+
 	if (tickCount % 4 == 0){
 		if (moveX != 0 || moveY != 0){
 			setPlayerPos(playerX + moveX, playerY + moveY);
@@ -201,7 +226,7 @@ function onTick(){
 		}
 		if (secondsPlayed == 0){
 			countdown();
-		}else if (radarTime == 0){
+		}else if (radarTime == 0 && playing){
 			showTime();
 		}
 		//PS.statusText("Egg Expedition!");
@@ -231,6 +256,8 @@ function showTime(){
 			PS.audioLoad("victory", {autoplay: true, path: "audio/", volume: 0.25});
 			victory = true;
 		}
+		PS.timerStop(timer);
+		timer = null;
 	}else{
 		var start = ""
 	}
@@ -461,21 +488,21 @@ function collectEgg(x, y){
 	//PS.debug("XY: " +x + ", " + y + "\n");
 	//PS.debug("PLAYER:" + playerX +", "+ playerY + "\n")
 	for (var i = 0; i < EGG_MAX; i++){
-		if (eggLocationsX[currentLevelIndex][i] == null || eggLocationsY[currentLevelIndex][i] == null){
+		if (eggsX[i] == null || eggsY[i] == null){
 			continue;
 		}
-
-
-		if (eggLocationsX[currentLevelIndex][i] == x && eggLocationsY[currentLevelIndex][i] == y){
+		if (eggsX[i] == x && eggsY[i] == y){
 			//PS.debug("Set egg location to null\n")
-			eggLocationsX[currentLevelIndex][i] = null;
-			eggLocationsY[currentLevelIndex][i] = null;
+			eggsX[i] = null;
+			eggsY[i] = null;
 		}
 	}
 	eggCount++;
 	if (eggCount == EGG_MAX){
 		radarTime = 0;
+		eggCount = 0;
 		playing = false;
+		showTime();
 	}
 }
 
@@ -500,9 +527,9 @@ function getClosestBeed(x, y){
 	//PS.debug("\n\n\n");
 
 	for (var i = 0; i < EGG_MAX; i++){
-		if (eggLocationsX[currentLevelIndex][i] != null && eggLocationsY[currentLevelIndex][i] != null){
-			let x2 = eggLocationsX[currentLevelIndex][i];
-			let y2 = eggLocationsY[currentLevelIndex][i];
+		if (eggsX[i] != null && eggsY[i] != null){
+			let x2 = eggsX[i];
+			let y2 = eggsY[i];
 			
 			let xdiff = Math.abs(x2-x)
 			let ydiff = Math.abs(y2-y)
@@ -762,10 +789,14 @@ const SPACE_KEY = 32
 
 PS.keyDown = function( key, shift, ctrl, options ) {
 	// Uncomment the following code line to inspect first three parameters:
-	/*if (victory && key == SPACE_KEY){
+	if (victory && key == SPACE_KEY){
+		eggsX.fill(0);
+		eggsY.fill(0);
+		PS.statusText("Select Level: " + levelNames[currentLevelIndex]);
 		levelSelect();
+		victory = false;
 		return;
-	}*/
+	}
 	if (!playing && !inLevelSelect){
 		return;
 	}
@@ -775,6 +806,7 @@ PS.keyDown = function( key, shift, ctrl, options ) {
 				if (currentLevelIndex == null){
 					break;
 				}
+				//PS.debug("entering level: " + currentLevelIndex)
 				initWorld();
 				break;
 			case LEFT_KEY:
