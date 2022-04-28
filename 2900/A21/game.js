@@ -55,6 +55,7 @@ const BACKGROUND_COLOR = 0x827ca6
 const EMPTY_COLOR = PS.COLOR_WHITE
 const WALL_COLOR = PS.COLOR_BLACK
 const EGG_COLOR = 255
+const RANDOM_EGG_COLOR = 16711900
 const SPEED_COLOR = 16711680
 const RADAR_COLOR = 16756224
 const ORIGINAL_PLAYER_COLOR = 5046016
@@ -90,13 +91,19 @@ var secondsPlayed = 0;
 
 var inLevelSelect = true;
 var currentLevelIndex = null;
-var levelCount = 2;
-var levelNames = ["Ol' Reliable Village", "Head in the Clouds"]
+var levelCount = 3;
+var levelNames = ["Ol' Reliable Village", "Head in the Clouds", "Sunken Ship Springs"]
 
 var beadData = Array.from(Array(levelCount), () => new Array(32*32).fill(0));
 var colisionData = Array.from(Array(levelCount), () => new Array(32*32).fill(0));
 var eggLocationsX = Array.from(Array(levelCount), () => new Array(EGG_MAX));
 var eggLocationsY = Array.from(Array(levelCount), () => new Array(EGG_MAX));
+
+var randomEggsX = Array.from(Array(levelCount), () => new Array(300));
+var randomEggsY = Array.from(Array(levelCount), () => new Array(300));
+var randomEggCounts = Array(levelCount).fill(0);
+
+var useRandomEggs = true;
 
 var eggsX = Array(EGG_MAX).fill(0);
 var eggsY = Array(EGG_MAX).fill(0);
@@ -186,12 +193,24 @@ function initWorld(){
 		}
 	}
 	//spawn new eggs
-	for (let i = 0; i < EGG_MAX; i++){
-		//PS.debug("new egg: " + i + "\n")
-		eggsX[i] = eggLocationsX[currentLevelIndex][i]
-		eggsY[i] = eggLocationsY[currentLevelIndex][i]
-		setColisionData(eggsX[i], eggsY[i], EGG_COLOR, currentLevelIndex);
+	if (useRandomEggs){
+		var indexs = getRandomIndexs(EGG_MAX, randomEggCounts[currentLevelIndex])
+		for (let i = 0; i < EGG_MAX; i++){
+			//PS.debug("new egg: " + i + "\n")
+			eggsX[i] = randomEggsX[currentLevelIndex][indexs[i]]
+			eggsY[i] = randomEggsY[currentLevelIndex][indexs[i]]
+			setColisionData(eggsX[i], eggsY[i], EGG_COLOR, currentLevelIndex);
+			//PS.debug("Egg " + i +" at: " + eggsX[i] + ", " + eggsY[i] + "\n")
+		}
+	}else{
+		for (let i = 0; i < EGG_MAX; i++){
+			//PS.debug("new egg: " + i + "\n")
+			eggsX[i] = eggLocationsX[currentLevelIndex][i]
+			eggsY[i] = eggLocationsY[currentLevelIndex][i]
+			setColisionData(eggsX[i], eggsY[i], EGG_COLOR, currentLevelIndex);
+		}
 	}
+
 	playerX = playerStartX[currentLevelIndex];
 	playerY = playerStartY[currentLevelIndex];
 	setPlayerPos(playerX, playerY);
@@ -203,6 +222,19 @@ function initWorld(){
 	//PS.debug("timer started...")
 
 }
+
+function getRandomIndexs(n, max){
+	var arr = Array(n);
+	for (var i = 0; i < n; i++) {
+		var r = Math.floor(Math.random() * max)
+		while (arr.includes(r)){
+			r = Math.floor(Math.random() * max);
+		}
+		arr[i] = r;
+	}
+	return arr;
+}
+
 function onTick(){
 	//Move player if they have a velocity
 	//PS.debug("timer running...")
@@ -276,7 +308,7 @@ function initLevels(index){
 	//PS.alpha(PS.ALL, PS.ALL, 0);
 
 	collisionLoader = function ( imageData ) {
-		var x, y, ptr, color, eggs;
+		var x, y, ptr, color, eggs, randomEggs;
 
 		mapHeights[index] = imageData.height
 		mapWidths[index] = imageData.width
@@ -284,6 +316,7 @@ function initLevels(index){
 		colisionData[index] = Array(mapWidths[index]*mapHeights[index]).fill(PS.COLOR_WHITE);
 		ptr = 0; // init pointer into data array
 		eggs = 0;
+		randomEggs = 0;
 		for ( y = 0; y < mapHeights[index]; y += 1 ) {
 			for ( x = 0; x < mapWidths[index]; x += 1 ) {
 				color = imageData.data[ ptr ]; // get color
@@ -297,11 +330,17 @@ function initLevels(index){
 					eggLocationsY[index][eggs] = y;
 					eggs += 1;
 				}
+				if (color == RANDOM_EGG_COLOR || color == EGG_COLOR){
+					randomEggsX[index][randomEggs] = x;
+					randomEggsY[index][randomEggs] = y;
+					randomEggs += 1;
+				}
 				setColisionData(x, y, color, index);
 				//PS.data( x, y, color );*/
 				ptr += 1; // point to next value
 			}
 		}
+		randomEggCounts[index] = randomEggs;
 		PS.imageLoad( "images/map"+(index+1)+"_gfx.png", graphicsLoader, 1 );
 	}
 	graphicsLoader = function ( imageData ) {
