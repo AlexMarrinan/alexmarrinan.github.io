@@ -26,6 +26,7 @@
     uniform vec2 resolution;
 
     uniform float noiseSize;
+    uniform float noiseSpeed;
 
     // uniform pointing to our opengl texture
     uniform sampler2D uSampler;
@@ -79,7 +80,7 @@
     void main() {
         vec2 st = gl_FragCoord.xy/resolution.xy*3.;
         //st.x *= resolution.x/resolution.y;
-        st += st * abs(sin(time*0.1)*noiseSize);
+        st += st * abs(sin(time*noiseSpeed)*noiseSize);
 
         vec3 color = vec3(0.0);
 
@@ -124,10 +125,13 @@
 
   <script type='text/javascript'>
     // kinda global variables... upvalues to each closure of each function in this script tag
-    let gl, uTime, uRes, uNoiseSize, drawProgram, videoTexture
+    let gl, uTime, uRes, uNoiseSize, uNoiseSpeed, drawProgram, videoTexture
+    var noiseSize = 0.25
+    var noiseSpeed = 0.1
 
     const size = 768
     window.onload = function() {
+      document.addEventListener('keyup', onKeyUp, false);
       const canvas = document.getElementById( 'gl' )
       gl = canvas.getContext( 'webgl' )
       canvas.width = canvas.height = size
@@ -190,6 +194,7 @@
       uTime = gl.getUniformLocation( drawProgram, 'time' ) 
       uRes = gl.getUniformLocation( drawProgram, 'resolution' )
       uNoiseSize = gl.getUniformLocation( drawProgram, 'noiseSize' )
+      uNoiseSpeed = gl.getUniformLocation( drawProgram, 'noiseSpeed' )
 
       // send uniform values for uRes up to gpu
       gl.uniform2f( uRes, size, size )
@@ -248,7 +253,6 @@
 
     // keep track of time via incremental frame counter
     let time = 0
-    let noiseSize = 0.125
     function render() {
       // schedules render to be called the next time the video card requests 
       // a frame of video
@@ -256,8 +260,11 @@
       
       // update time on CPU and GPU
       time++
-      gl.uniform1f( uNoiseSize, noiseSize );
       gl.uniform1f( uTime, time )
+
+      gl.uniform1f( uNoiseSize, noiseSize );
+      gl.uniform1f( uNoiseSpeed, noiseSpeed );
+
       gl.texImage2D( 
         gl.TEXTURE_2D,    // target: you will always want gl.TEXTURE_2D
         0,                // level of detail: 0 is the base
@@ -268,6 +275,26 @@
       
       // draw triangles using the array buffer from index 0 to 6 (6 is count)
       gl.drawArrays( gl.TRIANGLES, 0, 6 )
+    }
+
+    function onKeyUp(event)
+    {
+        if (event.key == '1')
+        {
+          noiseSize *= 3.0
+        }
+        else if (event.key == '2')
+        {
+          noiseSize /= 2
+        }
+        else if (event.key == '3')
+        {
+           noiseSpeed += 0.01
+        }
+        else if (event.key == '4')
+        {
+          noiseSpeed -= 0.01
+        }
     }
   </script>
 
