@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang='en'>
+  <head>
+    <style>body{ margin:0; background:black }</style>
+  </head>
+  <body>
+    <canvas id='gl'></canvas>
+  </body>
+  <!-- vertex shader, as simple as possible -->
+  <script id='vertex' type='x-shader/x-vertex'>
+    attribute vec2 a_position;
+
+    void main() {
+      gl_Position = vec4( a_position, 0, 1 );
+    }
+  </script>
+
+  <!-- fragment shader -->
+  <script id='fragment' type='x-shader/x-fragment'>
+    #ifdef GL_ES
+    precision mediump float;
+    #endif
+
+    uniform float time;
+    // contains resolution of our canvas, in pixels
+    uniform vec2 resolution;
+
+    uniform float noiseSize;
+
+    // uniform pointing to our opengl texture
+    uniform sampler2D uSampler;
+
+    // Author @patriciogv - 2015
+    // http://patriciogonzalezvivo.com
+    
+    float random (in vec2 _st) {
+        return fract(sin(dot(_st.xy,
+                             vec2(12.9898,78.233)))*
+            43758.5453123);
+    }
+    
+    // Based on Morgan McGuire @morgan3d
+    // https://www.shadertoy.com/view/4dS3Wd
+
+    float noise (in vec2 _st) {
+        vec2 i = floor(_st);
+        vec2 f = fract(_st);
+    
+        // Four corners in 2D of a tile
+        float a = random(i);
+        float b = random(i + vec2(1.0, 0.0));
+        float c = random(i + vec2(0.0, 1.0));
+        float d = random(i + vec2(1.0, 1.0));
+    
+        vec2 u = f * f * (3.0 - 2.0 * f);
+    
+        return mix(a, b, u.x) +
+                (c - a)* u.y * (1.0 - u.x) +
+                (d - b) * u.x * u.y;
+    }
+    
+    #define NUM_OCTAVES 5
+    
+    float fbm ( in vec2 _st) {
+        float v = 0.0;
+        float a = 0.5;
+        vec2 shift = vec2(100.0);
+        // Rotate to reduce axial bias
+        mat2 rot = mat2(cos(0.5), sin(0.5),
+                        -sin(0.5), cos(0.50));
+        for (int i = 0; i < NUM_OCTAVES; ++i) {
+            v += a * noise(_st);
+            _st = rot * _st * 2.0 + shift;
+            a *= 0.5;
+        }
+        return v;
+    }
+    
+    void main() {
+        vec2 st = gl_FragCoord.xy/resolution.xy*3.;
+        //st.x *= resolution.x/resolution.y;
+        st += st * abs(sin(time*0.1)*noiseSize);
+
+        vec3 color = vec3(0.0);
+
+        vec2 q = vec2(0.);
+        q.x = fbm( st + 0.00*time);
+        q.y = fbm( st + vec2(1.0));
+    
+        vec2 r = vec2(0.);
+        r.x = fbm( st + 1.0*q + vec2(1.7,9.2)+ 0.15*time );
+        r.y = fbm( st + 1.0*q + vec2(8.3,2.8)+ 0.126*time );
+
+        float f = fbm(st+r);
+    
+        color = mix(vec3(1.0,0.619608,0.666667),
+                    vec3(0.666667,0.666667,0.498039),
+                    clamp((f*f)*4.0,0.0,1.0));
+    
+        color = mix(color,
+                    vec3(0,0,0.164706),
+                    clamp(length(q),0.0,1.0));
+    
+        color = mix(color,
+                    vec3(0.666667,1,1),
+                    clamp(length(r.x),0.0,1.0));
+
+        vec4 fragColor = vec4((f*f*f+.6*f*f+.5*f)*color,1.);
+
+        
+        // gl_FragCoord is measured in pixels, but texture2D expects
+        // normalized coordinates (between 0–1). If we divide gl_FragCoord
+        // by our resolution, we'll get a normalized position value
+        vec2 pos = gl_FragCoord.xy / resolution;
+        
+        // just get rgb from the texture to invert.
+        vec3 videoColor = texture2D( uSampler, pos ).rgb;
+        
+        vec4 cameraFragColor = vec4( vec3( /*1. -*/ videoColor ), 1. );
+
+        gl_FragColor = fragColor + cameraFragColor;
+    }
+  </script>
+
+  <script type='text/javascript'>
+    // kinda global variables... upvalues to each closure of each function in this script tag
+    let gl, uTime, uRes, uNoiseSize, drawProgram, videoTexture
+
+    const size = 768
+    window.onload = function() {
+      const canvas = document.getElementById( 'gl' )
+      gl = canvas.getContext( 'webgl' )
+      canvas.width = canvas.height = size
+      
+      // define drawing area of webgl canvas. bottom corner, width / height
+      // XXX can't remember why we need the *2!
+      gl.viewport( 0,0,gl.drawingBufferWidth*2, gl.drawingBufferHeight*2 )
+
+      // create a buffer object to store vertices
+      const buffer = gl.createBuffer()
+
+      // point buffer at graphic context's ARRAY_BUFFER
+      gl.bindBuffer( gl.ARRAY_BUFFER, buffer )
+
+      // create two triangles (three vertices each) that fill entire canvas,
+      // with coordinates measured from -1 to 1.
+      const triangles = new Float32Array([
+        -1, -1,
+         1, -1,
+        -1,  1,
+        -1,  1,
+         1, -1,
+         1,  1
+      ])
+
+      // initialize memory for buffer and populate it. Give
+      // open gl hint contents will not change dynamically.
+      gl.bufferData( gl.ARRAY_BUFFER, triangles, gl.STATIC_DRAW )
+
+      // create vertex shader
+      let shaderScript = document.getElementById('vertex')
+      let shaderSource = shaderScript.text
+      // create shader object
+      const vertexShader = gl.createShader( gl.VERTEX_SHADER )
+      // define source text for our shader
+      gl.shaderSource( vertexShader, shaderSource )
+      // compile shader
+      gl.compileShader( vertexShader )
+
+      // create fragment shader
+      shaderScript = document.getElementById('fragment')
+      shaderSource = shaderScript.text
+      const fragmentShader = gl.createShader( gl.FRAGMENT_SHADER )
+      gl.shaderSource( fragmentShader, shaderSource )
+      gl.compileShader( fragmentShader )
+
+      // create shader program, which links vertex and fragment shaders
+      drawProgram = gl.createProgram()
+      gl.attachShader( drawProgram, vertexShader )
+      gl.attachShader( drawProgram, fragmentShader )
+      // report any errors in the fragment shader
+      console.log( gl.getShaderInfoLog( fragmentShader ) )
+      gl.linkProgram( drawProgram )
+      gl.useProgram( drawProgram )
+      
+      /* ALL ATTRIBUTE/UNIFORM INITIALIZATION MUST COME AFTER 
+      CREATING/LINKING/USING THE SHADER PROGAM */
+      
+      // find a pointer to the uniform "time" in our fragment shader
+      uTime = gl.getUniformLocation( drawProgram, 'time' ) 
+      uRes = gl.getUniformLocation( drawProgram, 'resolution' )
+      uNoiseSize = gl.getUniformLocation( drawProgram, 'noiseSize' )
+
+      // send uniform values for uRes up to gpu
+      gl.uniform2f( uRes, size, size )
+
+      // get position attribute location in shader
+      var position = gl.getAttribLocation( drawProgram, 'a_position' )
+      // enable the attribute
+      gl.enableVertexAttribArray( position )
+      // this will point to the vertices in the last bound array buffer.
+      // In this example, we only use one array buffer, where we're storing 
+      // our vertices
+      gl.vertexAttribPointer( position, 2, gl.FLOAT, false, 0,0 )
+      
+      video = getVideo()
+    }
+    
+    function getVideo() {
+      const video = document.createElement('video');
+
+      // request video stream
+      navigator.mediaDevices.getUserMedia({
+        video:true
+      }).then( stream => { 
+        // this block happens when the video stream has been successfully requested
+        video.srcObject = stream
+        video.play()
+        makeTexture()
+      }) 
+        
+      return video
+    }
+    
+    function makeTexture() {
+      // create an OpenGL texture object
+      videoTexture = gl.createTexture()
+      
+      // this tells OpenGL which texture object to use for subsequent operations
+      gl.bindTexture( gl.TEXTURE_2D, videoTexture )
+        
+      // since canvas draws from the top and shaders draw from the bottom, we
+      // have to flip our canvas when using it as a shader.
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+      // how to map when texture element is more than one pixel
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR )
+      // how to map when texture element is less than one pixel
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR )
+      
+      // you must have these properties defined for the video texture to
+      // work correctly at non-power-of-2 sizes
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE )
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE )
+      
+      render()
+    }
+
+    // keep track of time via incremental frame counter
+    let time = 0
+    let noiseSize = 0.125
+    function render() {
+      // schedules render to be called the next time the video card requests 
+      // a frame of video
+      window.requestAnimationFrame( render )
+      
+      // update time on CPU and GPU
+      time++
+      gl.uniform1f( uNoiseSize, noiseSize );
+      gl.uniform1f( uTime, time )
+      gl.texImage2D( 
+        gl.TEXTURE_2D,    // target: you will always want gl.TEXTURE_2D
+        0,                // level of detail: 0 is the base
+        gl.RGBA, gl.RGBA, // color formats
+        gl.UNSIGNED_BYTE, // type: the type of texture data; 0-255
+        video             // pixel source: could also be video or image
+      )
+      
+      // draw triangles using the array buffer from index 0 to 6 (6 is count)
+      gl.drawArrays( gl.TRIANGLES, 0, 6 )
+    }
+  </script>
+
+</html>
