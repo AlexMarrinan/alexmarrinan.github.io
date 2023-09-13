@@ -2,11 +2,19 @@
 <html lang='en'>
   <head>
     <style>body{ margin:0; background:black }</style>
+    <link rel="stylesheet" href="a2.css">
   </head>
   <body>
     <canvas id='gl'></canvas>
-    <label for="colorpicker">Color Picker:</label>
-    <input type="color" id="fColor" value="#45ba47">
+    <div>
+       <label for="colorpicker">Color:</label>
+       <input type="color" id="fColor" value="#45ba47">
+       <button type="button" id="sizeUp" onclick="sizeUp()">Decrease Size</button>
+       <button type="button" id="sizeDown" onclick="sizeDown()">Increase Size</button>
+       <button type="button" id="speedUp" onclick="speedDown()">Decrease Speed</button>
+       <button type="button" id="speedDown" onclick="speedUp()">Increase Speed</button>
+       <button type="button" id="reset" onclick="reset()">Reset</button>
+    </div>
   </body>
   <!-- vertex shader, as simple as possible -->
   <script id='vertex' type='x-shader/x-vertex'>
@@ -134,6 +142,7 @@
     var noiseSpeed = 0.1
     var octaveCount = 3
     const colorPicker = document.getElementById("fColor");
+
     var fColorR, fColorG, fColorB = 0.0
 
     const size = 768
@@ -308,25 +317,40 @@
     {
         if (event.key == '1')
         {
-          noiseSize *= 3.0
+          sizeDown()
         }
         else if (event.key == '2')
         {
-          noiseSize /= 2
+          sizeUp()
         }
         else if (event.key == '3')
         {
-           noiseSpeed += 0.01
+          speedDown()
         }
         else if (event.key == '4')
         {
-          noiseSpeed -= 0.01
+          speedUp()
         }
         else if (event.key == 'r'){
-          noiseSize = 0.25
-          noiseSpeed = 0.1;
+
         }
     }
-  </script>
 
+    function sizeUp(){
+      noiseSize *= 3.0
+    }
+    function sizeDown(){
+      noiseSize /= 3.0
+    }
+    function speedUp(){
+      noiseSpeed += 0.005
+    }
+    function speedDown(){
+      noiseSpeed -= 0.005
+    }
+    function reset(){
+      noiseSize = 0.25
+      noiseSpeed = 0.1;
+    } 
+     </script>
 </html>
