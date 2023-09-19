@@ -1,12 +1,11 @@
 @group(0) @binding(0) var<uniform> res: vec2f;
-@group(0) @binding(1) var<uniform> halfsize: u32;
-@group(0) @binding(2) var<uniform> da: f32;
-@group(0) @binding(3) var<uniform> db: f32;
-@group(0) @binding(4) var<uniform> feed: f32;
-@group(0) @binding(5) var<uniform> kill: f32;
+@group(0) @binding(1) var<uniform> da: f32;
+@group(0) @binding(2) var<uniform> db: f32;
+@group(0) @binding(3) var<uniform> feed: f32;
+@group(0) @binding(4) var<uniform> kill: f32;
 
-@group(0) @binding(6) var<storage, read_write> statein: array<f32>;
-@group(0) @binding(7) var<storage, read_write> stateout: array<f32>;
+@group(0) @binding(5) var<storage, read_write> statein: array<f32>;
+@group(0) @binding(6) var<storage, read_write> stateout: array<f32>;
 
 fn index( x:i32, y:i32, a:bool ) -> u32 {
   let _res = vec2i(res);
@@ -50,18 +49,18 @@ fn cs( @builtin(global_invocation_id) _cell:vec3u ) {
   let b = statein[iB];
   var newa = a + (da*laplace(cell.x, cell.y, true)) - (a*b*b) + (feed*(1-a));
   var newb = b + (db*laplace(cell.x, cell.y, false)) + (a*b*b) - ((kill + feed)*b);
-  // if (newa < 0.0){
-  //   newa = 0.0;
-  // }
-  // if (newb < 0.0){
-  //   newb = 0.0;
-  // }
-  // if (newa > 1.0){
-  //   newa = 1.0;
-  // }
-  // if (newb > 1.0){
-  //   newb = 1.0;
-  // }
+  if (newa < 0.0){
+    newa = 0.0;
+  }
+  if (newb < 0.0){
+    newb = 0.0;
+  }
+  if (newa > 1.0){
+    newa = 1.0;
+  }
+  if (newb > 1.0){
+    newb = 1.0;
+  }
   stateout[iA] = newa;
   stateout[iB] = newb;
 }
