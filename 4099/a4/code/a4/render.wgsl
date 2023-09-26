@@ -20,11 +20,13 @@ fn vs( input: VertexInput ) ->  @builtin(position) vec4f {
   let size = input.pos * psize;
   let aspect = res.y / res.x;
   let p = state[ input.instance ];
-  return vec4f( (p.pos.x - size.x * aspect), p.length*(p.pos.y + size.y), 0., 0.5); 
+  return vec4f( (p.pos.x - size.x * aspect)*1.2, p.length*(p.pos.y + size.y), 0., 0.5); 
 }
 
 @fragment 
 fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {;
-  let blue = .5 + sin( frame / 60. ) * .5;
-  return vec4f( pos.x / res.x, pos.y / res.y, blue , .1 );
+  let blue = .5 + sin( frame / 25. ) * .5;
+  let red =  .5 + cos( frame / 25. ) * .5;
+
+  return vec4f(red, pos.x / pos.y, blue , .1 );
 }

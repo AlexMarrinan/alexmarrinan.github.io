@@ -46,7 +46,7 @@ for( let i = 0; i < NUM_PARTICLES * NUM_PROPERTIES; i+= NUM_PROPERTIES ) {
   state[ i ] = -1 + Math.random() * 2
   state[ i + 1 ] = -1 + Math.random() * 2
   state[ i + 2 ] = Math.random() * 3
-  state[ i + 3 ] = (Math.random() * 5) + 5
+  state[ i + 3 ] = (Math.random() * 20) + 3
 
 }
 
