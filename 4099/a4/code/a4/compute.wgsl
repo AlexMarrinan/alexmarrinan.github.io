@@ -1,11 +1,14 @@
 struct Particle {
   pos: vec2f,
-  speed: f32
+  speed: f32,
+  length: f32
 };
 
 @group(0) @binding(0) var<uniform> frame: f32;
-@group(0) @binding(1) var<uniform> res:   vec2f;
-@group(0) @binding(2) var<storage, read_write> state: array<Particle>;
+@group(0) @binding(1) var<uniform> psize: f32;
+@group(0) @binding(2) var<uniform> speedMult: f32;
+@group(0) @binding(3) var<uniform> res:   vec2f;
+@group(0) @binding(4) var<storage, read_write> state: array<Particle>;
 
 fn cellindex( cell:vec3u ) -> u32 {
   let size = 8u;
@@ -18,7 +21,7 @@ fn cellindex( cell:vec3u ) -> u32 {
 fn cs(@builtin(global_invocation_id) cell:vec3u)  {
   let i = cellindex( cell );
   let p = state[ i ];
-  var next = p.pos.x + (2. / res.x) * p.speed;
+  var next = p.pos.y + (0.5 / res.y) * p.speed * speedMult;
   if( next >= 1. ) { next -= 2.; }
-  state[i].pos.x = next;
+  state[i].pos.y = next;
 }
