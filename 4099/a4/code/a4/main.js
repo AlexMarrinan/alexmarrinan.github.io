@@ -15,18 +15,18 @@ const NUM_PARTICLES = 2048*4,
       state = new Float32Array( NUM_PARTICLES * NUM_PROPERTIES )
 
       const pane = new Pane();
-      const params = { particleSize: 0.02, cloudSize: 0.08, fallSpeed: 1.0, cloudSpeed: 1.0}// dB: 0.5, minfeed: 0.055, feed:0.055, minkill: 0.062, kill:0.062, brushSize: 5.0, enableMouse:true}
+      const params = { particleSize: 0.007, cloudSize: 0.08, fallSpeed: 1.0, cloudSpeed: 1.0}// dB: 0.5, minfeed: 0.055, feed:0.055, minkill: 0.062, kill:0.062, brushSize: 5.0, enableMouse:true}
       
      // Mouse.init();
-    var psize = 0.015 
+    var psize = 0.007
     var csize = 0.08
     var speedMult = 1.0
     var cloudSpeed = 1.0
     pane
-          .addBinding(params, 'particleSize', { min: 0.005, max: 0.06 })
+          .addBinding(params, 'particleSize', { min: 0.001, max: 0.06 })
           .on('change',  e => { psize = e.value; })
     pane
-        .addBinding(params, 'cloudSize', { min: 0.005, max: 0.12 })
+        .addBinding(params, 'cloudSize', { min: 0.005, max: 0.2 })
         .on('change',  e => { csize = e.value; })
     pane
           .addBinding(params, 'fallSpeed', { min: 0.05, max: 5.0 })
