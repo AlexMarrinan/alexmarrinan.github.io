@@ -22,7 +22,7 @@ fn rule1(boidIndex: u32) -> vec2f{
     //TODO: GET ACTAUL ARRAY SIZE
     var v: vec2f = vec2f(0., 0.);
     var b = state[ boidIndex ];
-    var s: u32 = 16*5;
+    var s: u32 = 48*5;
     for (var i:u32 = 0; i < s; i = i + 5){
       if (i == boidIndex){
         continue;
@@ -30,10 +30,10 @@ fn rule1(boidIndex: u32) -> vec2f{
       var p = state[ i ];
       v += p.pos;
     }
-    v.x /= f32(16-1);
-    v.y /= f32(16-1);
+    v.x /= f32(48-1);
+    v.y /= f32(48-1);
 
-    var ret = (v - b.pos)/100;
+    var ret = (v - b.pos)/50;
     return ret;
 }
 
@@ -42,7 +42,7 @@ fn rule2(boidIndex: u32) -> vec2f{
     //TODO: GET ACTAUL ARRAY SIZE
     var v: vec2f = vec2f(0., 0.);
     var b = state[ boidIndex ];
-    var s: u32 = 16*5;
+    var s: u32 = 48*5;
     for (var i:u32 = 0; i < s; i = i + 5){
       if (i == boidIndex){
         continue;
@@ -52,7 +52,7 @@ fn rule2(boidIndex: u32) -> vec2f{
         v = v - (p.pos - b.pos);
       }
     }
-    return v * 0.05;
+    return v;
 }
 
 fn rule3(boidIndex: u32) -> vec2f{
@@ -60,7 +60,7 @@ fn rule3(boidIndex: u32) -> vec2f{
     //TODO: GET ACTAUL ARRAY SIZE
     var v: vec2f = vec2f(0., 0.);
     var b = state[ boidIndex ];
-    var s: u32 = 16*5;
+    var s: u32 = 48*5;
     for (var i:u32 = 0; i < s; i = i + 5){
       if (i == boidIndex){
         continue;
@@ -68,9 +68,9 @@ fn rule3(boidIndex: u32) -> vec2f{
       var p = state[ i ];
       v = v + p.vel;
     }
-    v.x /= f32(16-1);
-    v.y /= f32(16-1);
-    var ret = (v - b.vel)/2000;
+    v.x /= f32(48-1);
+    v.y /= f32(48-1);
+    var ret = (v - b.vel)*0.005;
     return ret;
 }
 
@@ -91,11 +91,11 @@ fn cs(@builtin(global_invocation_id) cell:vec3u)  {
   var nextx = p.pos.x;
 
   next = p.pos.y + v.y;
-  state[i].vel.x = v.y;
+  state[i].vel.y = v.y;
   if( next >= 1) { next -= 2.; }
   if( next <= -1) { next += 2.; }
-  nextx = p.pos.x + v.x;
-  state[i].vel.x = v.x;
+  nextx = p.pos.x + v.x;// + 0.005;
+  state[i].vel.x = v.x;// + 0.005;
   if( nextx >= 1 ) { nextx -= 2.; }
   if( nextx <= -1) { nextx += 2.; }
 

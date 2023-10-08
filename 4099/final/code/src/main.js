@@ -9,11 +9,11 @@ const sg = await seagulls.init(),
       render_shader  = await seagulls.import( './render.wgsl' ),
       compute_shader = await seagulls.import( './compute.wgsl' )
 
-const NUM_PARTICLES = 16, 
+const NUM_PARTICLES = 48, 
       // must be evenly divisble by 4 to use wgsl structs
       NUM_PROPERTIES = 5, 
-      stateSize = 16*5, //NUM_PARTICLES * NUM_PROPERTIES,
-      state = new Float32Array( stateSize )
+      stateSize = 64*5, //NUM_PARTICLES * NUM_PROPERTIES,
+      state = new Float32Array( 64*5 )
 
       const pane = new Pane();
       const params = { particleSize: 0.007, cloudSize: 0.08, fallSpeed: 1.0, cloudSpeed: 1.0}// dB: 0.5, minfeed: 0.055, feed:0.055, minkill: 0.062, kill:0.062, brushSize: 5.0, enableMouse:true}
@@ -68,11 +68,11 @@ const NUM_PARTICLES = 16,
   // }
 
 
-for( let i = 0; i < NUM_PARTICLES*5 ; i+= NUM_PROPERTIES ) {
+for( let i = 0; i < NUM_PARTICLES*NUM_PROPERTIES ; i+= NUM_PROPERTIES ) {
   state[ i ] = -1 + Math.random()*2
   state[ i + 1 ] = -1 + Math.random()*2
-  state[ i + 2 ] = (-0.5 + Math.random())*0.1
-  state[ i + 3 ] = (-0.5 + Math.random())*0.1
+  state[ i + 2 ] = (-0.5 + Math.random())*0.5
+  state[ i + 3 ] = (-0.5 + Math.random())*0.5
   state[ i + 4 ] = 0.15;
 }
 
