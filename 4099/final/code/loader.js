@@ -6,7 +6,7 @@ window.onload = function() {
         // remove comments
         txt = txt.replaceAll(/\/\/.*|\/\*[^]*\*\//g, '')
         txt = txt.replace(/\n\s*\n/g, '\n\n');      
-        //document.querySelector('code').innerHTML = txt
+        document.querySelector('code').innerHTML = txt
         microlight.reset('code') 
       })
   }
