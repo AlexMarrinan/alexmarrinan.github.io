@@ -1,5 +1,5 @@
 import { default as seagulls } from '../../seagulls.js'
-import { default as Video    } from '../../helpers/video.js'
+import { default as Video    } from '../../video.js'
 
 const sg     = await seagulls.init(),
       frag   = await seagulls.import( './frag.wgsl' ),

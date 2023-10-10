@@ -1,4 +1,5 @@
 import { default as seagulls } from '../../seagulls.js'
+import { default as Video    } from '../video.js'
 import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.1/dist/tweakpane.min.js';
 
 const WORKGROUP_SIZE = 8
@@ -17,23 +18,22 @@ var   NUM_PARTICLES = 1024,
       state = new Float32Array( stateSize )
 
       const pane = new Pane();
-      const params = { boidsCount: 1024, boidSize: 0.01, r1: 50, r2: 0.15, r3: 100.0}// dB: 0.5, minfeed: 0.055, feed:0.055, minkill: 0.062, kill:0.062, brushSize: 5.0, enableMouse:true}
+      const params = { boidsCount: 1024, boidSize: 0.01, r1: 50, r2: 0.15, r3: 100.0, cameraOpacity: 1.0}// dB: 0.5, minfeed: 0.055, feed:0.055, minkill: 0.062, kill:0.062, brushSize: 5.0, enableMouse:true}
       
      // Mouse.init();
     var psize = 0.01
-    var csize = 0.08
-    var speedMult = 1.0
-    var cloudSpeed = 1.0
     var r1 = 50.0
     var r2 = 0.15 
     var r3 = 100.0
+    var cameraOpacity = 1.0
     let lwind = [0, 0];
     let rwind = [0, 0];
+    
     pane
         .addBinding(params, 'boidsCount', { min: 64, max: 2048 })
         .on('change',  e => { NUM_PARTICLES = e.value; })
     pane
-          .addBinding(params, 'boidSize', { min: 0.001, max: 0.06 })
+          .addBinding(params, 'boidSize', { min: 0.001, max: 0.12 })
           .on('change',  e => { psize = e.value; })
     pane
         .addBinding(params, 'r1', { min: 0, max: 200})
@@ -44,7 +44,9 @@ var   NUM_PARTICLES = 1024,
     pane
         .addBinding(params, 'r3', { min: 50, max: 1000 })
         .on('change',  e => { r3 = e.value; })
-
+    pane
+        .addBinding(params, 'cameraOpacity', { min: 0., max: 1. })
+        .on('change',  e => { cameraOpacity = e.value; })
     const btn = pane.addButton({
       title: 'Reset',
       label: 'reset',   // optional
@@ -167,27 +169,27 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
+
+await Video.init()
 run()
 
 function run(){
   sg.buffers({ state:state, stateout:state })
   .backbuffer( false )
   .blend( true )
-  .uniforms({ frame, psize: psize, csize: csize, speedMult: speedMult, cloudSpeed: cloudSpeed,  stateSize: stateSize, r1value:r1, r2value:r2, r3value:r3, lwind:lwind, rwind: rwind, res:[sg.width, sg.height] })
-  .pingpong( 1 )
-  .compute( compute_shader, workgroup_count,{ pingpong:['state'] })
+  .uniforms({ frame, psize: psize, stateSize: stateSize, r1value:r1, r2value:r2, r3value:r3, lwind:lwind,rwind: rwind, camOp: cameraOpacity, res:[sg.width, sg.height] })
+  .textures([ Video.element ])
+  .compute( compute_shader, workgroup_count)
   .render( render_shader )
   .onframe( ()=>  {
           sg.uniforms.frame = frame++;
           sg.uniforms.psize = psize;
-          sg.uniforms.csize = csize;
-          sg.uniforms.speedMult = speedMult;
-          sg.uniforms.cloudSpeed = cloudSpeed;
           sg.uniforms.r1value = r1;
           sg.uniforms.r2value = r2;
           sg.uniforms.r3value = r3;
           sg.uniforms.lwind = lwind;
           sg.uniforms.rwind = rwind;
+          sg.uniforms.camOp = cameraOpacity;
         }
       )
   .run( NUM_PARTICLES )

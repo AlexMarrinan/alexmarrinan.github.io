@@ -17,19 +17,28 @@ struct VertexOutput {
 
 @group(0) @binding(0) var<uniform> frame: f32;
 @group(0) @binding(1) var<uniform> psize: f32;
-@group(0) @binding(2) var<uniform> csize: f32;
-@group(0) @binding(3) var<uniform> speedMult: f32;
-@group(0) @binding(4) var<uniform> cloudSpeed: f32;
-@group(0) @binding(5) var<uniform> stateSize: u32;
+@group(0) @binding(2) var<uniform> stateSize: u32;
 
-@group(0) @binding(6) var<uniform> r1value: f32;
-@group(0) @binding(7) var<uniform> r2value: f32;
-@group(0) @binding(8) var<uniform> r3value: i32;
-@group(0) @binding(9) var<uniform> lwind: vec2f;
-@group(0) @binding(10) var<uniform> rwind: vec2f;
-@group(0) @binding(11) var<uniform> res:   vec2f;
+@group(0) @binding(3) var<uniform> r1value: f32;
+@group(0) @binding(4) var<uniform> r2value: f32;
+@group(0) @binding(5) var<uniform> r3value: f32;
+@group(0) @binding(6) var<uniform> lwind: vec2f;
+@group(0) @binding(7) var<uniform> rwind: vec2f;
+@group(0) @binding(8) var<uniform> camOp: f32;
+@group(0) @binding(9) var<uniform> res:   vec2f;
 
-@group(0) @binding(12) var<storage> state: array<Particle>;
+@group(0) @binding(10) var videoSampler:   sampler;
+
+@group(0) @binding(11) var<storage> state: array<Particle>;
+@group(0) @binding(12) var<storage> stateout: array<Particle>;
+
+@group(1) @binding(0) var videoBuffer:    texture_external;
+
+
+// // @group(0) @binding(13) var backSampler:    sampler;
+// // @group(0) @binding(14) var backBuffer:     texture_2d<f32>;
+
+
 
 @vertex 
 fn vs( input: VertexInput ) -> VertexOutput{
@@ -70,14 +79,18 @@ let position = array<vec2f,6>(
 }
 
 @fragment 
-fn fs( out : VertexOutput ) -> @location(0) vec4f {;
-  let pos = out.pos;
-  let particlePos = out.particlePos;
+fn fs( vertexOutput : VertexOutput ) -> @location(0) vec4f {
+  let pos = vertexOutput.pos;
+  let p = pos.xy / res;
+  let particlePos = vertexOutput.particlePos;
   if(distance(particlePos,vec2f(0.5)) > .4){
     discard;
   }
   let red =  f32(pos.y)/res.y + 0.3;
   let green =  f32(pos.x)/res.x + 0.2;
-  return vec4f(red,green, 0.0 , 1.0 );
+  //let fb = textureSample( backBuffer, backSampler, p );
+  let vid = textureSampleBaseClampToEdge( videoBuffer, videoSampler, p );
+  var boids =  vec4f(red,green, 0.0 , 1.0 );
+  var out = mix(vid, boids, camOp);
+  return out;
 }
-

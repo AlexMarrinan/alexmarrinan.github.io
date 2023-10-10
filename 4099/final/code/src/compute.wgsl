@@ -7,20 +7,23 @@ struct Particle {
 
 @group(0) @binding(0) var<uniform> frame: f32;
 @group(0) @binding(1) var<uniform> psize: f32;
-@group(0) @binding(2) var<uniform> csize: f32;
-@group(0) @binding(3) var<uniform> speedMult: f32;
-@group(0) @binding(4) var<uniform> cloudSpeed: f32;
-@group(0) @binding(5) var<uniform> stateSize: u32;
+@group(0) @binding(2) var<uniform> stateSize: u32;
 
-@group(0) @binding(6) var<uniform> r1value: f32;
-@group(0) @binding(7) var<uniform> r2value: f32;
-@group(0) @binding(8) var<uniform> r3value: f32;
-@group(0) @binding(9) var<uniform> lwind: vec2f;
-@group(0) @binding(10) var<uniform> rwind: vec2f;
-@group(0) @binding(11) var<uniform> res:   vec2f;
+@group(0) @binding(3) var<uniform> r1value: f32;
+@group(0) @binding(4) var<uniform> r2value: f32;
+@group(0) @binding(5) var<uniform> r3value: f32;
+@group(0) @binding(6) var<uniform> lwind: vec2f;
+@group(0) @binding(7) var<uniform> rwind: vec2f;
+@group(0) @binding(8) var<uniform> camOp: f32;
+@group(0) @binding(9) var<uniform> res:   vec2f;
 
-@group(0) @binding(12) var<storage, read_write> state: array<Particle>;
-@group(0) @binding(13) var<storage, read_write> stateout: array<Particle>;
+@group(0) @binding(10) var<storage, read_write> state: array<Particle>;
+@group(0) @binding(11) var<storage, read_write> stateout: array<Particle>;
+
+// // @group(0) @binding(14) var backSampler:    sampler;
+// // @group(0) @binding(15) var backBuffer:     texture_2d<f32>;
+// @group(0) @binding(14) var videoSampler:   sampler;
+// @group(1) @binding(0) var videoBuffer:    texture_external;
 
 fn cellindex( cell:vec3u ) -> u32 {
   let size = 8u;
@@ -113,16 +116,16 @@ fn cs(@builtin(global_invocation_id) cell:vec3u)  {
   var nextx = p.pos.x;
 
   next = p.pos.y + v.y;
-  stateout[i].vel.y = v.y;
+  state[i].vel.y = v.y;
   if( next >= 1.) { next -= 2.; }
   if( next <= -1.) { next += 2.; }
   nextx = p.pos.x + v.x;// + 0.005;
-  stateout[i].vel.x = v.x;// + 0.005;
+  state[i].vel.x = v.x;// + 0.005;
   if( nextx >= 1. ) { nextx -= 2.; }
   if( nextx <= -1.) { nextx += 2.; }
 
-  stateout[i].pos.y = next;
-  stateout[i].pos.x = nextx;
+  state[i].pos.y = next;
+  state[i].pos.x = nextx;
   //state[i].pos.x += 0.005*sin(f32(state[i].pos.x));
   // if (state[i].pos.x <= 0.){
   //     state[i].pos.x = res.x;
