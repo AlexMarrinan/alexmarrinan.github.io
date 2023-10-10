@@ -26,7 +26,8 @@ struct VertexOutput {
 @group(0) @binding(7) var<uniform> rwind: vec2f;
 @group(0) @binding(8) var<uniform> camOp: f32;
 @group(0) @binding(9) var<uniform> res:   vec2f;
-
+// @group(0) @binding(10) var backSampler:    sampler;
+// @group(0) @binding(11) var backBuffer:     texture_2d<f32>;
 @group(0) @binding(10) var videoSampler:   sampler;
 
 @group(0) @binding(11) var<storage> state: array<Particle>;
@@ -86,11 +87,11 @@ fn fs( vertexOutput : VertexOutput ) -> @location(0) vec4f {
   if(distance(particlePos,vec2f(0.5)) > .4){
     discard;
   }
-  let red =  f32(pos.y)/res.y + 0.3;
-  let green =  f32(pos.x)/res.x + 0.2;
+  let red =  f32(pos.y)/res.y + 0.0;
+  let green =  f32(pos.x)/res.x + 0.0;
   //let fb = textureSample( backBuffer, backSampler, p );
   let vid = textureSampleBaseClampToEdge( videoBuffer, videoSampler, p );
-  var boids =  vec4f(red,green, 0.0 , 1.0 );
+  let boids = vec4f(red, green, 0.0 , 1.0 );
   var out = mix(vid, boids, camOp);
   return out;
 }

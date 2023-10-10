@@ -68,23 +68,6 @@ var   NUM_PARTICLES = 1024,
     // })
     //       .on('change',  e => { controller = e.value; })
 
-for( let i = 0; i < NUM_PARTICLES*NUM_PROPERTIES ; i+= NUM_PROPERTIES ) {
-  state[ i ] = -1 + Math.random()*2
-  state[ i + 1 ] = -1 + Math.random()*2
-  state[ i + 2 ] = (-0.5 + Math.random())*0.5
-  state[ i + 3 ] = (-0.5 + Math.random())*0.5
-  state[ i + 4 ] = 0.15;
-  state[ i + 5 ] = 0.0;
-}
-
-// for( let i = NUM_PARTICLES*NUM_PROPERTIES; i < NUM_BACKGROUND_PARTICLES*NUM_PROPERTIES ; i+= NUM_PROPERTIES ) {
-//   state[ i ] = -1 + Math.random()*2
-//   state[ i + 1 ] = -1 + Math.random()*2
-//   state[ i + 2 ] = (-0.5 + Math.random())*0.5
-//   state[ i + 3 ] = (-0.5 + Math.random())*0.5
-//   state[ i + 4 ] = 0.15;
-//   state[ i + 5 ] = 1;
-// }
 const workgroup_count = [
   Math.round( window.innerWidth /  8), 
   Math.round( window.innerHeight / 8), 
@@ -173,7 +156,18 @@ function gameLoop() {
 await Video.init()
 run()
 
-function run(){
+function generateBoids(){
+  for( let i = 0; i < NUM_PARTICLES*NUM_PROPERTIES ; i+= NUM_PROPERTIES ) {
+    state[ i ] = -1 + Math.random()*2
+    state[ i + 1 ] = -1 + Math.random()*2
+    state[ i + 2 ] = (-0.5 + Math.random())*0.5
+    state[ i + 3 ] = (-0.5 + Math.random())*0.5
+    state[ i + 4 ] = 0.15;
+    state[ i + 5 ] = 0.0;
+  }
+}
+
+function generateBuffers(){
   sg.buffers({ state:state, stateout:state })
   .backbuffer( false )
   .blend( true )
@@ -193,6 +187,11 @@ function run(){
         }
       )
   .run( NUM_PARTICLES )
+}
+
+function run(){
+  generateBoids()
+  generateBuffers()
 }
 
 
