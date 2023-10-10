@@ -74,26 +74,26 @@ const workgroup_count = [
   1
 ] 
 
-function motion(event){
-  console.log("Accelerometer: "
-    + event.accelerationIncludingGravity.x + ", "
-    + event.accelerationIncludingGravity.y + ", "
-    + event.accelerationIncludingGravity.z
-  );
-}
-window.addEventListener("gamepadconnected", (e) => {
-  console.log(
-    "Gamepad connected at index %d: %s. %d buttons, %d axes.",
-    e.gamepad.index,
-    e.gamepad.id,
-    e.gamepad.buttons.length,
-    e.gamepad.axes.length,
-  );
-  gameLoop();
+// function motion(event){
+//   console.log("Accelerometer: "
+//     + event.accelerationIncludingGravity.x + ", "
+//     + event.accelerationIncludingGravity.y + ", "
+//     + event.accelerationIncludingGravity.z
+//   );
+// }
+// window.addEventListener("gamepadconnected", (e) => {
+//   console.log(
+//     "Gamepad connected at index %d: %s. %d buttons, %d axes.",
+//     e.gamepad.index,
+//     e.gamepad.id,
+//     e.gamepad.buttons.length,
+//     e.gamepad.axes.length,
+//   );
+//   gameLoop();
 
-});
+// });
 
-let interval;
+// let interval;
 
 // if (!("ongamepadconnected" in window)) {
 //   // No gamepad events available, poll instead.
