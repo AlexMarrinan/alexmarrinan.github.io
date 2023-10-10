@@ -24,13 +24,15 @@ struct VertexOutput {
 
 @group(0) @binding(6) var<uniform> r1value: f32;
 @group(0) @binding(7) var<uniform> r2value: f32;
-@group(0) @binding(8) var<uniform> r3value: f32;
-@group(0) @binding(9) var<uniform> res:   vec2f;
+@group(0) @binding(8) var<uniform> r3value: i32;
+@group(0) @binding(9) var<uniform> lwind: vec2f;
+@group(0) @binding(10) var<uniform> rwind: vec2f;
+@group(0) @binding(11) var<uniform> res:   vec2f;
 
-@group(0) @binding(10) var<storage> state: array<Particle>;
+@group(0) @binding(12) var<storage> state: array<Particle>;
 
 @vertex 
-fn vs( input: VertexInput ) -> VertexOutput {
+fn vs( input: VertexInput ) -> VertexOutput{
   let aspect = res.y / res.x;
   let p = state[ input.instance ];
   var size = input.pos * psize;
@@ -40,11 +42,19 @@ fn vs( input: VertexInput ) -> VertexOutput {
   //   size = input.pos * csize;
   // }
   // let pos = vec4f( (p.pos.x - size.x * aspect)*0.4, p.length*(p.pos.y + size.y), 0., 0.5); 
-  let position = array<vec2f,6>(
+  var x = rwind.x;
+  var y = rwind.y;
+  if (x < 0.5){
+     x = 0.5;
+  }
+  if (y < 0.5){
+     y = 0.5;
+  }
+let position = array<vec2f,6>(
     //Bottom right
     vec2f(1,0),
     //Bottom left
-    vec2f(0,-1),
+    vec2f(0,0),
     //Top left
     vec2f(0,1),
     //Bottom right
@@ -54,16 +64,16 @@ fn vs( input: VertexInput ) -> VertexOutput {
     //Top right
     vec2f(1,1)
   );
-  let pos = vec4f( p.pos.x - size.x * aspect, p.pos.y + size.y, 0., 1.); 
-  return VertexOutput(pos,position[ind]);
+  let pos = vec4f( f32(p.pos.x - size.x * aspect), f32(p.pos.y + size.y), 0., 1.); 
+  return VertexOutput(pos, position[ind]);
 
 }
 
 @fragment 
-fn fs(out : VertexOutput ) -> @location(0) vec4f {;
+fn fs( out : VertexOutput ) -> @location(0) vec4f {;
   let pos = out.pos;
   let particlePos = out.particlePos;
-  if(distance(particlePos,vec2f(0.1)) > .9){
+  if(distance(particlePos,vec2f(0.5)) > .4){
     discard;
   }
   let red =  f32(pos.y)/res.y + 0.3;

@@ -1,7 +1,8 @@
 struct Particle {
   pos: vec2f,
   vel: vec2f,
-  length: f32
+  length: f32,
+  style: i32
 };
 
 @group(0) @binding(0) var<uniform> frame: f32;
@@ -14,10 +15,12 @@ struct Particle {
 @group(0) @binding(6) var<uniform> r1value: f32;
 @group(0) @binding(7) var<uniform> r2value: f32;
 @group(0) @binding(8) var<uniform> r3value: f32;
-@group(0) @binding(9) var<uniform> res:   vec2f;
+@group(0) @binding(9) var<uniform> lwind: vec2f;
+@group(0) @binding(10) var<uniform> rwind: vec2f;
+@group(0) @binding(11) var<uniform> res:   vec2f;
 
-@group(0) @binding(10) var<storage, read_write> state: array<Particle>;
-@group(0) @binding(11) var<storage, read_write> stateout: array<Particle>;
+@group(0) @binding(12) var<storage, read_write> state: array<Particle>;
+@group(0) @binding(13) var<storage, read_write> stateout: array<Particle>;
 
 fn cellindex( cell:vec3u ) -> u32 {
   let size = 8u;
@@ -28,9 +31,9 @@ fn rule1(boidIndex: u32) -> vec2f{
     //TODO: GET ACTAUL ARRAY SIZE
     var v: vec2f = vec2f(0., 0.);
     var b = state[ boidIndex ];
-    var s: u32 = 128*5;
-    for (var i:u32 = 0; i < s; i = i + 5){
-      if (i == boidIndex){
+    var s = 128*5;
+    for (var i = 0; i < s; i = i + 6){
+      if (i == i32(boidIndex)){
         continue;
       }
       var p = state[ i ];
@@ -39,20 +42,22 @@ fn rule1(boidIndex: u32) -> vec2f{
       // }
       v += p.pos*r1value*0.05 ;
     }
-    v.x /= f32(128-1);
-    v.y /= f32(128-1);
+    v.x /= f32(127);
+    v.y /= f32(127);
 
-    var ret = (v - b.pos)/100;
-    return ret;
+    // var ret = vec2f((v - b.pos)/100);
+    let retx = (v.x-b.pos.x)/r3value;
+    let rety = (v.y-b.pos.y)/r3value;
+    return vec2f(retx, rety);
 }
 
 fn rule2(boidIndex: u32) -> vec2f{
     //TODO: GET ACTAUL ARRAY SIZE
     var v: vec2f = vec2f(0., 0.);
     var b = state[ boidIndex ];
-    var s: u32 = 128*5;
-    for (var i:u32 = 0; i < s; i = i + 5){
-      if (i == boidIndex){
+    var s = 128*5;
+    for (var i = 0; i < s; i = i + 6){
+      if (i == i32(boidIndex)){
         continue;
       }
       var p = state[ i ];
@@ -68,44 +73,53 @@ fn rule3(boidIndex: u32) -> vec2f{
     //TODO: GET ACTAUL ARRAY SIZE
     var v: vec2f = vec2f(0., 0.);
     var b = state[ boidIndex ];
-    var s: u32 = 128*5;
-    for (var i:u32 = 0; i < s; i = i + 5){
-      if (i == boidIndex){
+    var s = 128*5;
+    for (var i = 0; i < s; i = i + 6){
+      if (i == i32(boidIndex)){
         continue;
       }
       var p = state[ i ];
       v = v + p.vel*r3value*0.05;
     }
-    v.x /= f32(128-1);
-    v.y /= f32(128-1);
-    var ret = (v - b.vel)/r3value;
+    v.x /= f32(s-1);
+    v.y /= f32(s-1);
+    var ret = vec2f((v - b.vel)/r3value);
     return ret;
+}
+
+fn wind() -> vec2f{
+  var v: f32 = .015;
+  return vec2f(lwind.x*v, -lwind.y*v);
 }
 
 @compute
 @workgroup_size(8,8)
 fn cs(@builtin(global_invocation_id) cell:vec3u)  {
   let i = cellindex( cell );
+  var p = state[ i ];
+  if (p.style == 1){
+    return;
+  }
   let v1 = rule1(i);
   let v2 = rule2(i);
   let v3 = rule3(i);
-  var p = state[ i ];
+  let v4 = wind();
   // if (p.speed == 0){
   //   p.length = 10.;
   // }
-  let v = v1 + v2 + v3;
+  let v = v1 + v2 + v3 + v4;
   
   var next = p.pos.y;
   var nextx = p.pos.x;
 
   next = p.pos.y + v.y;
   stateout[i].vel.y = v.y;
-  if( next >= 1) { next -= 2.; }
-  if( next <= -1) { next += 2.; }
+  if( next >= 1.) { next -= 2.; }
+  if( next <= -1.) { next += 2.; }
   nextx = p.pos.x + v.x;// + 0.005;
   stateout[i].vel.x = v.x;// + 0.005;
-  if( nextx >= 1 ) { nextx -= 2.; }
-  if( nextx <= -1) { nextx += 2.; }
+  if( nextx >= 1. ) { nextx -= 2.; }
+  if( nextx <= -1.) { nextx += 2.; }
 
   stateout[i].pos.y = next;
   stateout[i].pos.x = nextx;
