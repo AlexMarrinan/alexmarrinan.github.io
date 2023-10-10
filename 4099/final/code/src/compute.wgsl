@@ -5,20 +5,17 @@ struct Particle {
   style: i32
 };
 
-@group(0) @binding(0) var<uniform> frame: f32;
-@group(0) @binding(1) var<uniform> psize: f32;
-@group(0) @binding(2) var<uniform> stateSize: u32;
+@group(0) @binding(0) var<uniform> psize: f32;
+@group(0) @binding(1) var<uniform> stateSize: u32;
 
-@group(0) @binding(3) var<uniform> r1value: f32;
-@group(0) @binding(4) var<uniform> r2value: f32;
-@group(0) @binding(5) var<uniform> r3value: f32;
-@group(0) @binding(6) var<uniform> lwind: vec2f;
-@group(0) @binding(7) var<uniform> rwind: vec2f;
-@group(0) @binding(8) var<uniform> camOp: f32;
-@group(0) @binding(9) var<uniform> res:   vec2f;
+@group(0) @binding(2) var<uniform> r1value: f32;
+@group(0) @binding(3) var<uniform> r2value: f32;
+@group(0) @binding(4) var<uniform> r3value: f32;
+@group(0) @binding(5) var<uniform> lwind: vec2f;
+@group(0) @binding(6) var<uniform> rwind: vec2f;
+@group(0) @binding(7) var<uniform> res:   vec2f;
 
-@group(0) @binding(10) var<storage, read_write> state: array<Particle>;
-@group(0) @binding(11) var<storage, read_write> stateout: array<Particle>;
+@group(0) @binding(8) var<storage, read_write> state: array<Particle>;
 
 // // @group(0) @binding(14) var backSampler:    sampler;
 // // @group(0) @binding(15) var backBuffer:     texture_2d<f32>;

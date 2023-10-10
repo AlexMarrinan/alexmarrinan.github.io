@@ -89,25 +89,25 @@ const seagulls = {
 
   createTexture( device, format, canvas ) {
     const tex = device.createTexture({
-      size: [canvas.width, canvas.height],
+      size: Array.isArray( canvas ) ? canvas : [canvas.width, canvas.height],
       format,
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
     })
 
     return tex
   },
- 
-  createQuadBuffer( device, label='quad vertices' ) {
+
+  createVertexBuffer2D( device, vertices, stride=8, label='vertex buffer' ) {
     const buffer = device.createBuffer({
       label,
-      size:  CONSTANTS.quadVertices.byteLength,
+      size: vertices.byteLength,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     })
-
-    device.queue.writeBuffer( buffer, 0, CONSTANTS.quadVertices )
+    device.queue.writeBuffer( buffer, 0, vertices )
     
+    // would need to change arrayStride to 12 for 3D vertices
     const vertexBufferLayout = {
-      arrayStride: 8,
+      arrayStride: stride,
       attributes: [{
         format: "float32x2",
         offset: 0,
@@ -116,8 +116,8 @@ const seagulls = {
     }
 
     return [buffer, vertexBufferLayout]
-  },
 
+  },
 
   createStorageBuffer( device=null, storage=null, label='storage', usage=CONSTANTS.defaultStorageFlags, offset=0 ) {
     const buffer = device.createBuffer({
@@ -130,108 +130,6 @@ const seagulls = {
 
     return buffer
   },
-
-  _createPingPongLayout( device, label='ping-pong', uniformCount=0, bufferCount=0 ) {
-    const entries = []
-    // very unoptimized... every buffer has max visibility
-    // 
-    // and every buffer is read/write storage
-    for( let i = 0; i < bufferCount; i++ ) {
-      const even = i % 2 === 0
-      const entry = { binding: i }
-      entry.visibility = even 
-        ? GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT
-        : GPUShaderStage.COMPUTE
-      entry.buffer = { type: even ? 'storage' : 'storage' }
-      entries.push( entry )
-    }
-
-    if( uniformCount !==0 ) {
-      entries.forEach( e => {
-        e.binding += uniformCount 
-      })
-      for( let i = 0; i < uniformCount; i++ ) {
-        entries.unshift({
-          binding:i,
-          visibility: GPUShaderStage.COMPUTE,
-          // must have this next line even though it is empty
-          // otherwise bad bad things happen in Chrome
-          // (and apparently it's part of the spec)
-          buffer:{}
-        })
-      }
-    }
-    const bindGroupLayout = device.createBindGroupLayout({
-      label,
-      entries
-    })
-
-    return bindGroupLayout
-  },
-
-
-  // TODO fix should add buffer
-  createRenderLayout( device, label='render', shouldAddBuffer=0, uniforms=null, backBuffer=true, textures=null ) {
-    let count = 0
-    const entries = [] 
-
-    if( uniforms !== null ) {
-      for( let key of Object.keys( Object.getOwnPropertyDescriptors( uniforms ) ) ) {
-        entries.push({
-          binding:  count++,
-          visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
-          buffer: { type:'uniform' }
-        })
-      }
-    }
-
-    if( backBuffer ) {
-      entries.push({
-        binding:count++,
-        visibility: GPUShaderStage.FRAGMENT,
-        sampler: {}
-      })
-      entries.push({
-        binding:count++,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: {}
-      })
-    }
-
-    if( textures !== null ) {
-      textures.forEach( tex => {
-        entries.push({
-          binding:count++,
-          visibility: GPUShaderStage.FRAGMENT,
-          sampler: {}
-        })
-        //entries.push({
-        //  binding:count++,
-        //  visibility: GPUShaderStage.FRAGMENT,
-        //  externalTexture: {}
-        //})
-      })
-    }
-
-    if( shouldAddBuffer ) {
-      for( let i = 0; i < shouldAddBuffer; i++ ) {
-        entries.push({
-          binding: count++,
-          visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
-          buffer: { type: "read-only-storage"} 
-        })
-      }
-    }
-
-    const bindGroupLayout = device.createBindGroupLayout({
-      label,
-      entries
-    })
-
-
-    return bindGroupLayout
-  },
-
 
   createUniformBuffer( device, values, label='seagull uniforms' ) {
     const arr = new Float32Array(values)
@@ -247,103 +145,167 @@ const seagulls = {
     return buff
   },
 
-  _createPingPongBindGroups( device, layout, buffers, uniform=null, name='pingpong', backBuffer=true, textures=null ) {
+  
+  createSimulationPipeline( device, pingponglayout, code ) {
+    const layout = device.createPipelineLayout({
+      label:'cell pipeline layout',
+      bindGroupLayouts: [ pingponglayout ]
+    })
+
+    const module = device.createShaderModule({
+      label: 'sim',
+      code
+    })
+
+    const p = device.createComputePipeline({
+      label: 'sim',
+      layout,
+      compute: {
+        module,
+        entryPoint: 'cs'
+      }
+    })
+
+    return p
+  },
+
+  createRenderLayoutEntry( data, count=0, type='render', readwrite='read-only-storage' ) {
+    let entry
+    const visibility = type === 'render'
+      ? GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX 
+      : GPUShaderStage.COMPUTE
+
+    switch( data.type ) {
+      case 'uniform':
+        entry = {
+          binding:    count,
+          visibility,
+          buffer:     { type:'uniform' }
+        }
+        break
+      case 'texture': case 'feedback':
+        entry = {
+          binding:    count,
+          visibility,
+          texture:    {}
+        }
+        break
+      case 'sampler':
+        entry = {
+          binding:    count,
+          visibility,
+          sampler:    {}
+        }
+        break
+      case 'buffer':
+        // make sure we don't specify buffers as read/write for fragment
+        // and vertex shaders
+        const __type = type === 'render' ? 'read-only-storage' : readwrite 
+        
+        entry = {
+          visibility,
+          binding: count,
+          buffer:  { type: __type } 
+        }
+        break
+    }
+
+    return entry
+  },
+
+  // how to handle feedback/back buffer?
+  createBindGroupLayout( device, data, type='render', label='render layout' ) {
+    let count = 0
+    const entries = []
+
+    if( data !== null ) {
+      for( let d of data ) {
+        if( d.type === 'video' ) continue
+
+        if( d.type === 'pingpong' ) {
+          entries.push( seagulls.createRenderLayoutEntry( d.a, count++, type ) )
+          entries.push( seagulls.createRenderLayoutEntry( d.b, count++, type, 'storage' ) )
+        }else{
+          // TODO is it safe to assume that a buffer not included in a pingpong will always
+          // be read/write as part of a compute shader?
+          const mode = type === 'compute' ? 'storage' : 'read-only-storage'
+          entries.push( seagulls.createRenderLayoutEntry( d, count++, type, mode ) )
+        }
+      }
+    }
+
+    const bindGroupLayout = device.createBindGroupLayout({
+      label,
+      entries
+    })
+
+    return bindGroupLayout
+  },
+
+  createRenderBindGroupEntry( data, count ) {
+    let entry
+    switch( data.type ) {
+      case 'uniform':
+        entry = {
+          binding:  count,
+          resource: { buffer: data },
+        }
+        break
+      case 'texture':
+        entry = {
+          binding:  count,
+          resource: data.texture.createView() 
+        }
+        break
+      case 'feedback':
+        entry = {
+          binding:  count,
+          resource: backTexture.createView() 
+        }
+        break
+      case 'sampler':
+        entry = {
+          binding: count,
+          resource: data.sampler,
+        }
+        break
+      case 'buffer':
+        entry = {
+          binding: count,
+          resource:  { buffer:data.buffer } 
+        }
+        break
+    }
+    entry.type = data.type
+
+    return entry
+  },
+
+  createBindGroups( device, layout, data, pingpong=false ) {
     const entriesA = [],
           entriesB = []
 
+    pingpong = !!pingpong
+
     let count = 0 
 
-    
-    if( uniform !== null ) {
-      for( let key of Object.keys( Object.getOwnPropertyDescriptors( uniform ) ) ) {
-        if( key === 'name' || key === 'length' ) continue
-        const uni = {
-          binding:  count++,
-          resource: { buffer: uniform[ key ] }
-        }
-        entriesA.push( uni )
-        entriesB.push( uni )
-      }
-    }
-
-    if( backBuffer ) {
-      const sampler = device.createSampler({
-        magFilter: 'linear',
-        minFilter: 'linear',
-      })
-      const sampleruni = {
-        binding: count++,
-        resource: sampler,
-      }
-      const textureuni = {
-        binding: count++,
-        resource: backTexture.createView(),
-      }
-
-      entriesA.push( sampleruni )
-      entriesB.push( sampleruni )
-      entriesA.push( textureuni )
-      entriesB.push( textureuni )
-    }
-
-    if( textures !== null ) {
-      textures.forEach( tex => {
-        const sampler = device.createSampler({
-          magFilter: 'linear',
-          minFilter: 'linear'
-        })
-        const sampleruni = {
-          binding: count++,
-          resource: sampler
-        }
-        //const textureuni = {
-        //  binding: count++,
-        //  resource: device.importExternalTexture({ source:tex.src })
-        //}
-
-        entriesA.push( sampleruni )
-        entriesB.push( sampleruni )
-      })
-    }
-
-
-    if( buffers !== null ) {
-      // for each buffer, if it is a pingpong we need
-      // to create an extra entry for it, if it's not
-      // a pingpong than the single entry is sufficient.
-      // either way, the buffer needs to go into two different
-      // bindgroups fed by entriesA and entriesB.
-      for( let i = 0; i < buffers.length; i++ ) {
-        let buffer = buffers[ i ]
-
-        entriesA.push({
-          binding:count,
-          resource: { buffer:buffers[i]}
-        })
-
-        if( buffer.pingpong === true ) {
-          entriesA.push({
-            binding:count + 1,
-            resource: { buffer:buffers[i+1]}
-          })
-
-          entriesB.push({
-            binding:count,
-            resource: { buffer:buffers[i+1]}
-          })
-          entriesB.push({
-            binding:count + 1,
-            resource: { buffer:buffers[i]}
-          })
-
-          i+=1 // extra advance!!!!
-          count += 2
+    if( data !== null ) {
+      for( let d of data ) {
+        if( d.type === 'video' ) continue
+        if( d.type !== 'pingpong' ) {
+          const entry = seagulls.createRenderBindGroupEntry( d, count++ )
+          entriesA.push( entry )
+          if( pingpong ) entriesB.push( entry )
         }else{
-          entriesB.push({
-            binding:count,
-            resource: { buffer:buffers[i]}
-          })
-          count += 1
+          const a = seagulls.createRenderBindGroupEntry( d.a, count ),
+                b = seagulls.createRenderBindGroupEntry( d.b, count + 1 ),
+                a1= seagulls.createRenderBindGroupEntry( d.a, count + 1 ),
+                b1= seagulls.createRenderBindGroupEntry( d.b, count )
+
+          entriesA.push( a, b  )
+          entriesB.push( a1,b1 )
+
+          count += 2
         }
       }
     }
@@ -353,29 +315,35 @@ const seagulls = {
         label:`${name} a`,
         layout,
         entries:entriesA
-      }),
-
-      device.createBindGroup({
-        label:`${name} b`,
-        layout,
-        entries: entriesB      
       })
     ]
+    
+    // we only need a second bind group if
+    // we are pingponging textures / buffers
+    if( pingpong === true ) {
+      bindGroups.push(
+        device.createBindGroup({
+          label:`${name} b`,
+          layout,
+          entries: entriesB      
+        })
+      )
+    }
 
     return bindGroups
   },
-  createRenderPipeline( device, code, presentationFormat, vertexBufferLayout, bindGroupLayout, textures, shouldBlend=false ) {
+
+  createRenderPipeline( device, code, presentationFormat, vertexBufferLayout, bindGroupLayout, data, shouldBlend=false ) {
     const module = device.createShaderModule({
       label: 'main render',
       code
     })
 
     const bindGroupLayouts = [ bindGroupLayout ]
-    const hasTexture = Array.isArray( textures ) 
-      ? textures[0] !== null 
-      : false
+    const videos = data.filter( d => d.type === 'video' )
+    const hasExternalTexture = videos.length > 0 
 
-    if( navigator.userAgent.indexOf('Firefox') === -1 && hasTexture ) {
+    if( navigator.userAgent.indexOf('Firefox') === -1 && hasExternalTexture ) {
       const externalEntry = {
         binding: 0,
         visibility: GPUShaderStage.FRAGMENT,
@@ -409,19 +377,6 @@ const seagulls = {
         targets: [{
           format: presentationFormat,
           blend: shouldBlend ? CONSTANTS.blend : undefined
-
-          /*blend:{
-            color: {
-              srcFactor: 'src-alpha',
-              dstFactor: 'one',
-              operation: 'add',
-            },
-            alpha: {
-              srcFactor: 'zero',
-              dstFactor: 'one',
-              operation: 'add',
-            }
-          }*/
         }]
       }
     });
@@ -429,111 +384,87 @@ const seagulls = {
     return pipeline
   },
 
-  createSimulationPipeline( device, pingponglayout, code ) {
-    const layout = device.createPipelineLayout({
-      label:'cell pipeline layout',
-      bindGroupLayouts: [ pingponglayout ]
-    })
+  createRenderStage( device, props, presentationFormat ) {
+    const shader = props.shader,
+          data   = props.data,
+          blend  = props.blend
 
-    const module = device.createShaderModule({
-      label: 'sim',
-      code
-    })
+    const vertices = props.vertices === undefined ? CONSTANTS.quadVertices : props.vertices
+    const [vertexBuffer, vertexBufferLayout] = seagulls.createVertexBuffer2D( device, vertices )
 
-    const p = device.createComputePipeline({
-      label: 'sim',
-      layout,
-      compute: {
-        module,
-        entryPoint: 'cs'
-      }
-    })
+    const renderLayout = seagulls.createBindGroupLayout( device, props.data )
 
-    return p
-  },
+    // check all entries to see if any need to pingpong
+    let shouldPingPong = false
+    if( props.data !== null )
+      shouldPingPong = props.data.reduce( (a,v) => a + (v.type === 'pingpong' ? 1 : 0), 0 )
 
-  createRenderStage( device, shader, storage=null, presentationFormat, uniforms=null, textures=null, useBackBuffer=true, useBlend=false ) {
-    const [quadBuffer, quadBufferLayout] = seagulls.createQuadBuffer( device )
-    //console.log( storage, Object.keys( storage ) )n
-    const storageLength = storage === null ? 0 : Object.keys(storage).length
+    const bindGroups = seagulls.createBindGroups( device, renderLayout, props.data, shouldPingPong )
 
-    const renderLayout  = seagulls.createRenderLayout( 
+    let textures = []
+    if( props.data !== null )
+      textures   = props.data.filter( d => d.type === 'texture' )
+
+    const pipeline   = seagulls.createRenderPipeline( 
       device, 
-      'seagull render layout', 
-      storageLength, 
-      uniforms, 
-      useBackBuffer, 
-      textures 
-    )
-
-    const bindGroups    = seagulls._createPingPongBindGroups( 
-      device, 
+      shader, 
+      presentationFormat, 
+      vertexBufferLayout, 
       renderLayout, 
-      storage, 
-      uniforms, 
-      'render', 
-      useBackBuffer, 
-      textures
+      data, 
+      blend 
     )
 
-    const pipeline  = seagulls.createRenderPipeline( device, shader, presentationFormat, quadBufferLayout, renderLayout, textures, useBlend )
-
-    return [ pipeline, bindGroups, quadBuffer ]
+    return [ pipeline, bindGroups, vertexBuffer ]
   },
 
-  createSimulationStage( device, computeShader, buffers=null, uniforms=null, useBackBuffer=false ) {
-    const uniformsLength = uniforms === null || typeof uniforms === 'function' 
-      ? 0 
-      : Object.keys( Object.getOwnPropertyDescriptors( uniforms ) ).length  
+  createSimulationStage( device, computeShader, data ) {
+    let shouldPingPong = false
+    if( data !== null )
+      shouldPingPong = !!data.reduce( (a,v) => a + (v.type === 'pingpong' ? 1 : 0), 0 )
 
-    const pingPongLayout     = seagulls._createPingPongLayout( device, 'ping', uniformsLength, buffers.length )
-    const pingPongBindGroups = seagulls._createPingPongBindGroups( 
-      device, 
-      pingPongLayout, 
-      buffers, 
-      uniforms,
-      'compute',
-      useBackBuffer
-    )
-    const simPipeline        = seagulls.createSimulationPipeline( device, pingPongLayout, computeShader )
+    const simLayout     = seagulls.createBindGroupLayout( device, data, 'compute', 'compute layout' ) 
+    const simBindGroups = seagulls.createBindGroups( device, simLayout, data, shouldPingPong, 'compute' ) 
+   
+    const simPipeline   = seagulls.createSimulationPipeline( device, simLayout, computeShader )
 
-    return [ simPipeline, pingPongBindGroups ]
+    return [ simPipeline, simBindGroups ]
   },
 
-  pingpong( encoder, pipeline, bindgroups, length=1, workgroupCount, idx=0 ) {
-    for( let i = 0; i < length; i++ ) {
+  pingpong( encoder, pass ) {
+    for( let i = 0; i < pass.times; i++ ) {
       const computePass = encoder.beginComputePass()
+      const bindGroupIndex = pass.shouldPingPong === true ? pass.step++ % 2 : 0
+      
+      computePass.setPipeline( pass.pipeline )
+      computePass.setBindGroup( 0, pass.bindGroups[ bindGroupIndex ] ) 
 
-      computePass.setPipeline( pipeline )
-      computePass.setBindGroup( 0, bindgroups[ idx%2 ] ) 
-
-      if( Array.isArray( workgroupCount ) ) {
-        computePass.dispatchWorkgroups( workgroupCount[0], workgroupCount[1], workgroupCount[2] )
+      if( Array.isArray( pass.dispatchCount ) ) {
+        computePass.dispatchWorkgroups( pass.dispatchCount[0], pass.dispatchCount[1], pass.dispatchCount[2] )
       }else{
-        computePass.dispatchWorkgroups( workgroupCount,workgroupCount,1 )
+        computePass.dispatchWorkgroups( pass.dispatchCount,pass.dispatchCount,1 )
       }
 
-      idx++
       computePass.end()
     }
     
-    return idx
+    return pass.step
   },
 
-  render( device, encoder, view, clearValue, vertexBuffer, pipeline, bindGroups, count=1, idx=0, context=null, textures=null ) {
-    const shouldCopy = context !== null
+  render( encoder, passDesc ) {
+    const shouldCopy = passDesc.context !== null
 
     const renderPassDescriptor = {
       label: 'render',
       colorAttachments: [{
-        view,
-        clearValue,
+        view: passDesc.view,
+        clearValue: passDesc.clearValue,
         loadOp:  'clear',
         storeOp: 'store',
       }]
     }
 
-    const externalLayout = device.createBindGroupLayout({
+    const externalLayout = passDesc.device.createBindGroupLayout({
       label:'external layout',
       entries:[{
         binding:0,
@@ -542,19 +473,20 @@ const seagulls = {
       }]
     })
     
-    let resource = null, 
-        shouldBind = navigator.userAgent.indexOf('Firefox') === -1 && textures !== null && textures[0] !== null 
+    let resource = null,
+        videos   = passDesc.data.filter( d => d.type === 'video' ),
+        useVideo = navigator.userAgent.indexOf('Firefox') === -1 && videos.length > 0
 
     
     let externalTextureBindGroup = null
 
-    if( shouldBind )  {
+    if( useVideo )  {
       try {
-        resource = device.importExternalTexture({
-          source:textures[0]
+        resource = passDesc.device.importExternalTexture({
+          source:videos[0].src//passDesc.textures[0]
         })
 
-        externalTextureBindGroup = device.createBindGroup({
+        externalTextureBindGroup = passDesc.device.createBindGroup({
           layout: externalLayout,
           entries: [{
             binding: 0,
@@ -567,24 +499,29 @@ const seagulls = {
       }
     }
 
-    // additional setup.
-
     // in case we want a backbuffer etc. eventually this should probably be
     // replaced with a more generic post-processing setup
     let swapChainTexture = null
     if( shouldCopy ) {
-      swapChainTexture = context.getCurrentTexture()
+      swapChainTexture = passDesc.context.getCurrentTexture()
       renderPassDescriptor.colorAttachments[0].view = swapChainTexture.createView()
     }
 
     const pass = encoder.beginRenderPass( renderPassDescriptor )
-    pass.setPipeline( pipeline )
-    pass.setVertexBuffer( 0, vertexBuffer )
-    pass.setBindGroup( 0, bindGroups[ idx++ % 2 ] )
-    if( shouldBind ) { 
+    pass.setPipeline( passDesc.renderPipeline )
+
+    pass.setVertexBuffer( 0, passDesc.vertexBuffer )
+
+    // only switch bindgroups if pingpong is needed
+    const bindGroupIndex = passDesc.shouldPingPong === true ? passDesc.step++ % 2 : 0
+
+    pass.setBindGroup( 0, passDesc.renderBindGroups[ bindGroupIndex ] )
+
+    if( useVideo ) { 
       pass.setBindGroup( 1, externalTextureBindGroup ) 
     }
-    pass.draw(6, count)  
+    
+    pass.draw(6, passDesc.count )  
     pass.end()
 
     if( shouldCopy ) {
@@ -592,66 +529,12 @@ const seagulls = {
       encoder.copyTextureToTexture(
         { texture: swapChainTexture },
         { texture: backTexture },
-        [ seagulls.width, seagulls.height]
+        [ seagulls.width, seagulls.height ]
       )
     }
 
-    device.queue.submit([ encoder.finish() ])
 
-    return idx
-  },
-
-  createUniformsManager( device, dict ) {
-    const manager = {}
-    const values  = Object.values( dict )
-    const keys    = Object.keys( dict )
-
-    keys.forEach( (k,i) => {
-      const __value = values[ i ]
-      const value = Array.isArray( __value ) ? __value : [ __value ]
-      const buffer = seagulls.createUniformBuffer( device, value )
-      const storage = new Float32Array( value )
-
-
-      if( Array.isArray( __value ) ) {
-        manager[ k ] = buffer
-        for( let i = 0; i < value.length; i++ ) {
-          Object.defineProperty( buffer, i, {
-            set(v) {
-              storage[ i ] = v
-              device.queue.writeBuffer( buffer, i*4, storage, i*4, mult )
-            },
-            get() {
-              return storage[ i ]
-            }
-          })
-        }
-        Object.defineProperty( manager, k, {
-          set(v) {
-            storage.set( v )
-            // apparently docs are wrong, all arguments are actually in bytes wtf
-            // https://developer.mozilla.org/en-US/docs/Web/API/GPUQueue/writeBuffer
-            device.queue.writeBuffer( buffer, 0, storage, 0, v.length * mult )
-          },
-
-          get() {
-            return buffer
-          }
-        })
-      }else{
-        Object.defineProperty( manager, k, {
-          set( v ) {
-            storage[ 0 ] = v
-            device.queue.writeBuffer( buffer, 0, storage, 0, mult )
-          },
-          get() {
-            return buffer
-          }
-        })
-      }
-    })
-
-    return manager
+    return passDesc.step
   },
 
   async init( ) {
@@ -684,176 +567,256 @@ const seagulls = {
   },
 
   proto: {
-    buffers( _buffers ) {
-      this.__buffers = {}
-      Object.entries(_buffers).forEach( ([k,v]) => {
-        const usage = v.usage !== undefined ? v.usage : CONSTANTS.defaultStorageFlags
-        this.__buffers[ k ] = seagulls.createStorageBuffer( this.device, v, k, usage )
-      })
-      return this
-    },
+    buffer( v, label='', type='float' ) {
+      const usage = v.usage !== undefined ? v.usage : CONSTANTS.defaultStorageFlags
+      const buffer = seagulls.createStorageBuffer( this.device, v, label, usage )
 
-    uniforms( _uniforms ) {
-      this.uniforms = seagulls.createUniformsManager( this.device, _uniforms )
-      return this
-    },
-
-    textures( _textures ) {
-      this.__textures = _textures/*textures.map( tex => {
-        const t = seagulls.createTexture( this.device, this.presentationFormat, this.canvas )
-        t.src = tex
-        return t
-      })*/
-
-      return this
-    },
-
-    backbuffer( use=true ) {
-      this.shouldUseBackBuffer = use
-      return this
-    },
-
-    clear( clearColor ) {
-      this.clearColor = clearColor 
-      return this
-    },
-
-    compute( shader, count=1, args ) {
-      let __uniforms = {}
-      if( args?.uniforms !== undefined ) {
-        for( let u of args.uniforms ) {
-          __uniforms[ u ] = this.uniforms[ u ]
-        }
-      }else{
-        if( typeof this.uniforms !== 'function' ) {
-          for( let u of Object.getOwnPropertyNames( this.uniforms ) ) {
-            __uniforms[ u ] = this.uniforms[ u ]
-          }
-        }
+      buffer.clear = ()=> {
+        v.fill(0)
+        this.device.queue.writeBuffer(
+          buffer, 0, v, 0, v.length * mult 
+        )
+      }
+      buffer.write = ( buffer, readStart=0, writeStart=0, length=-1 ) => {
+        this.device.queue.writeBuffer(
+          buffer, 
+          readStart, 
+          buffer, 
+          writeStart, 
+          length === -1 ? buffer.length * mult : length
+        )
       }
 
-      if( Array.isArray( args?.pingpong ) ) {
-        args.pingpong.forEach( key => {
-          this.__buffers[ key ].pingpong = true
+      return { type:'buffer', buffer }
+    },
+
+    uniform( __value, type='float' ) {
+      const value = Array.isArray( __value ) ? __value : [ __value ]
+      const buffer = seagulls.createUniformBuffer( this.device, value, type )
+      const storage = new Float32Array( value )
+      const device = this.device
+
+      if( Array.isArray( __value ) ) {
+        buffer.value = {}
+        for( let i = 0; i < value.length; i++ ) {
+          Object.defineProperty( buffer.value, i, {
+            set(v) {
+              storage[ i ] = v
+              device.queue.writeBuffer( buffer, i*4, storage, i*4, mult )
+            },
+            get() {
+              return storage[ i ]
+            }
+          })
+        }
+        Object.defineProperty( buffer, 'value', {
+          set(v) {
+            storage.set( v )
+            // apparently docs are wrong, all arguments are actually in bytes wtf
+            // https://developer.mozilla.org/en-US/docs/Web/API/GPUQueue/writeBuffer
+            device.queue.writeBuffer( buffer, 0, storage, 0, v.length * mult )
+          },
+          get() {
+            return storage
+          }
         })
-      } 
+      }else{
+        Object.defineProperty( buffer, 'value', {
+          set( v ) {
+            storage[ 0 ] = v
+            device.queue.writeBuffer( buffer, 0, storage, 0, mult )
+          },
+          get() {
+            return storage[0]
+          }
+        })
+      }
+
+      buffer.type = 'uniform'
+
+      return buffer
+    },
+
+    sampler() {
+      const sampler = { 
+        type:'sampler',
+        sampler : this.device.createSampler({
+          magFilter: 'linear',
+          minFilter: 'linear',
+        })
+      }
+      return sampler
+    },
+
+    feedback() {
+      const feedback = { 
+        type:'feedback'
+      }
+
+      return feedback
+    },
+
+    video( src ) {
+      return { type:'video', src }
+    },
+
+    pingpong( a,b ) {
+      return { type:'pingpong', a, b }
+    },
+    
+    textures( _textures ) {
+      this.__textures = _textures.map( tex => {
+        const texture = seagulls.createTexture( this.device, this.presentationFormat, [this.width, this.height])
+        texture.src = tex
+        this.device.queue.writeTexture(
+          { texture }, 
+          tex,
+          { bytesPerRow: 4 * this.width, rowsPerImage: this.height }, 
+          {width:this.width, height:this.height}
+        )
+
+        return texture
+      })
+
+      return this
+    },
+
+    compute( args ) {
+      const pass = {
+        type:     'compute',
+        device:   this.device,
+        data:     null, 
+        shader:   args.shader,
+        dispatchCount: [1,1,1],
+        times:    1,
+        step:     0
+      }
+
+      Object.assign( pass, args )
 
       const [ simPipeline, simBindGroups ] = seagulls.createSimulationStage( 
-        this.device, 
-        shader, 
-        Object.values( this.__buffers ), 
-        __uniforms,
-        this.shouldUseBackBuffer
+        pass.device,
+        pass.shader, 
+        pass.data 
       )
 
-      if( args?.workgroupCount !== undefined ) {
-        this.workgroupCount = args.workgroupCount
+      pass.pipeline   = simPipeline
+      pass.bindGroups = simBindGroups
+
+      if( pass.data !== null ) {
+        pass.shouldPingPong = !!pass.data.reduce( (a,v) => a + (v.type === 'pingpong' ? 1 : 0), 0 )
       }else{
-        this.workgroupCount = count//Math.round(this.canvas.width / 8)
+        pass.shouldPingPong = false
       }
 
-      this.__computeStages.push({ 
-        simPipeline, simBindGroups, step:0, times:this.times, workgroupCount:this.workgroupCount  
-      })
-
-      Object.assign( this, { simPipeline, simBindGroups })
-      return this
+      console.log( 'compute should pingpong:', pass.shouldPingPong )
+      return pass 
     },
 
-    pingpong( times ) {
-      this.times = times
-      return this
-    },
 
-    render( shader, args ) {
-      let __uniforms = {}
+    render( args ) {
+      const pass = {
+        type:   'render',
+        device: this.device,
+        presentationFormat: this.presentationFormat,
+        clearColor: this.clearColor,
+        view: this.view,
+        step: 0,
+        canvas: this.canvas,
+        context: this.context,
+        data:null,
+        shader:null,
+        count:1
+      }
+
+      Object.assign( pass, args )
       
-      // check to see if list of uniforms was passed
-      // if not assume all uniforms will be used
-      // in the fragment shader.
-      if( args?.uniforms !== undefined ) {
-        for( let u of args.uniforms ) {
-          __uniforms[ u ] = this.uniforms[ u ]
-        }
-      }else{
-        if( typeof this.uniforms !== 'function' ) {
-          for( let u of Object.getOwnPropertyNames( this.uniforms ) ) {
-            __uniforms[ u ] = this.uniforms[ u ]
-          }
-        }
-      }
-
-      if( Array.isArray( args?.pingpong ) ) {
-        args.pingpong.forEach( key => {
-          this.__buffers[ key ].pingpong = true
-        })
-      }
-
-      const [ renderPipeline, renderBindGroups, quadBuffer ] = seagulls.createRenderStage( 
-        this.device, 
-        shader, 
-        this.__buffers !== undefined ? Object.values(this.__buffers) : null, 
-        this.presentationFormat,
-        __uniforms,
-        this.__textures,
-        this.shouldUseBackBuffer,
-        this.__blend
+      const [renderPipeline, renderBindGroups, vertexBuffer] = seagulls.createRenderStage(
+        this.device,
+        pass,
+        this.presentationFormat
       )
 
-      Object.assign( this, { renderPipeline, renderBindGroups, quadBuffer })
-      return this
+      pass.renderPipeline = renderPipeline
+      pass.renderBindGroups = renderBindGroups
+      pass.vertexBuffer = vertexBuffer
+
+      if( pass.data !== null ) {
+        pass.shouldPingPong = !!pass.data.reduce( (a,v) => a + (v.type === 'pingpong' ? 1 : 0), 0 )
+      }else{
+        pass.shouldPingPong = false
+      }
+      
+      return pass
     },
 
-    onframe( fnc ) {
-      this.__onframe = fnc 
-      return this
-    },
-
-    blend( shouldBlend=false ) {
-      this.__blend = shouldBlend
-      return this
-    },
-
-    run( instanceCount = 1, time=null ) {
+    run( ...passes ) {
       const encoder = this.device.createCommandEncoder({ label: 'seagulls encoder' })
 
-      if( typeof this.__onframe === 'function' ) this.__onframe()
+      for( let pass of passes ) {
+        if( typeof pass.onframe === 'function' ) pass.onframe()
 
-      if( this.__computeStages.length > 0 ) {
-        for( let stage of this.__computeStages ) {
-          stage.step = seagulls.pingpong( 
-            encoder, 
-            stage.simPipeline, 
-            stage.simBindGroups, 
-            stage.times, //this.times, 
-            stage.workgroupCount, 
-            stage.step
+        if( pass.type === 'render' ) {
+          pass.step = seagulls.render( encoder, pass )
+        }else{
+          pass.step = seagulls.pingpong( 
+            encoder,
+            pass
           )
         }
       }
 
-      this.renderStep = seagulls.render( 
-        this.device, 
-        encoder, 
-        this.view,
-        this.clearColor, 
-        this.quadBuffer, 
-        this.renderPipeline, 
-        this.renderBindGroups,
-        instanceCount,
-        this.renderStep,
-        this.context,
-        this.__textures
-      )
-      
+      this.device.queue.submit([ encoder.finish() ])
 
-      if( time === null ) {
-        window.requestAnimationFrame( ()=> { this.run( instanceCount ) })
-      }else{
-        this.timeout = setTimeout( ()=> { this.run( instanceCount, time ) }, time )
-      }
-    }
+      window.requestAnimationFrame( ()=> { this.run( ...passes ) })
+    },
+
   }
 }
 
 export default seagulls
+
+/*
+const sg       = await segulls.init()
+
+const frame    = sg.uniform( 0 ),
+      res      = sg.uniform( [sg.width, sg.height] ),
+      vants    = sg.buffer( vants ),
+      sampler  = sg.sampler(),
+      textureA = sg.texture( pheromones ),
+      textureB = sg.texture( pheromones, true )
+      
+const render = sg.render({
+  shader:render_shader,
+  data:[
+    frame,
+    res,
+    sampler,
+    sg.pingpong( textureA, textureB )
+  ]
+})
+
+const sim = sg.compute({
+  shader:simulation_shader,
+  data:[
+    frame,
+    res,
+    vants,
+    sampler,
+    sg.pingpong( textureA, textureB )
+  ],
+  dispatch:[ 64,64,1 ]
+})
+
+const diffuse = sg.compute({
+  shader:diffuse_shader,
+  data:[
+    sampler,
+    sg.pingpong( textureA, textureB )
+  ],
+  dispatch: { sg.width / 8, sg.height / 8, 1 ]
+})
+
+sg.run( sim, diffuse, render )
+
+*/

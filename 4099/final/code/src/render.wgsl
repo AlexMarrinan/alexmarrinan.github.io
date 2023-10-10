@@ -17,22 +17,12 @@ struct VertexOutput {
 
 @group(0) @binding(0) var<uniform> frame: f32;
 @group(0) @binding(1) var<uniform> psize: f32;
-@group(0) @binding(2) var<uniform> stateSize: u32;
+@group(0) @binding(2) var<uniform> camOp: f32;
+@group(0) @binding(3) var<uniform> res:   vec2f;
+@group(0) @binding(4) var<storage> state: array<Particle>;
 
-@group(0) @binding(3) var<uniform> r1value: f32;
-@group(0) @binding(4) var<uniform> r2value: f32;
-@group(0) @binding(5) var<uniform> r3value: f32;
-@group(0) @binding(6) var<uniform> lwind: vec2f;
-@group(0) @binding(7) var<uniform> rwind: vec2f;
-@group(0) @binding(8) var<uniform> camOp: f32;
-@group(0) @binding(9) var<uniform> res:   vec2f;
-// @group(0) @binding(10) var backSampler:    sampler;
-// @group(0) @binding(11) var backBuffer:     texture_2d<f32>;
-@group(0) @binding(10) var videoSampler:   sampler;
-
-@group(0) @binding(11) var<storage> state: array<Particle>;
-@group(0) @binding(12) var<storage> stateout: array<Particle>;
-
+@group(0) @binding(5) var videoSampler:   sampler;
+@group(0) @binding(6) var backBuffer:     texture_2d<f32>;
 @group(1) @binding(0) var videoBuffer:    texture_external;
 
 
@@ -52,14 +42,6 @@ fn vs( input: VertexInput ) -> VertexOutput{
   //   size = input.pos * csize;
   // }
   // let pos = vec4f( (p.pos.x - size.x * aspect)*0.4, p.length*(p.pos.y + size.y), 0., 0.5); 
-  var x = rwind.x;
-  var y = rwind.y;
-  if (x < 0.5){
-     x = 0.5;
-  }
-  if (y < 0.5){
-     y = 0.5;
-  }
 let position = array<vec2f,6>(
     //Bottom right
     vec2f(1,0),

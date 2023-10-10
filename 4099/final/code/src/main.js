@@ -168,25 +168,62 @@ function generateBoids(){
 }
 
 function generateBuffers(){
-  sg.buffers({ state:state, stateout:state })
-  .backbuffer( false )
-  .blend( true )
-  .uniforms({ frame, psize: psize, stateSize: stateSize, r1value:r1, r2value:r2, r3value:r3, lwind:lwind,rwind: rwind, camOp: cameraOpacity, res:[sg.width, sg.height] })
-  .textures([ Video.element ])
-  .compute( compute_shader, workgroup_count)
-  .render( render_shader )
-  .onframe( ()=>  {
-          sg.uniforms.frame = frame++;
-          sg.uniforms.psize = psize;
-          sg.uniforms.r1value = r1;
-          sg.uniforms.r2value = r2;
-          sg.uniforms.r3value = r3;
-          sg.uniforms.lwind = lwind;
-          sg.uniforms.rwind = rwind;
-          sg.uniforms.camOp = cameraOpacity;
-        }
-      )
-  .run( NUM_PARTICLES )
+
+  const state_b = sg.buffer( state ),
+    frame_u = sg.uniform( 0 ),
+    psize_u = sg.uniform(psize),
+    stateSize_u = sg.uniform(stateSize),
+    r1_u = sg.uniform(r1),
+    r2_u = sg.uniform(r2),
+    r3_u = sg.uniform(r3),
+    lwind_u = sg.uniform(lwind),
+    rwind_u = sg.uniform(rwind),
+    camOp_u = sg.uniform(cameraOpacity),
+    res_u   = sg.uniform([ sg.width, sg.height ]) 
+
+  const render = sg.render({
+    shader: render_shader,
+    data: [
+      frame_u,
+      psize_u,
+      camOp_u,
+      res_u,
+      state_b,
+      sg.sampler(),
+      sg.feedback(),
+      sg.video( Video.element )
+    ],
+    onframe() { frame_u.value++;
+                psize_u.value = psize;
+                r1_u.value = r1;
+                r2_u.value = r2;
+                r3_u.value = r3;
+                lwind_u.value = lwind;
+                rwind_u.value = rwind;
+                camOp_u.value = cameraOpacity},
+    count: NUM_PARTICLES,
+    blend: true
+  })
+  
+  const dc = Math.ceil( NUM_PARTICLES / 64 )
+
+  const compute = sg.compute({
+    shader: compute_shader,
+    data: [
+      psize_u,
+      stateSize_u,
+      r1_u,
+      r2_u,
+      r3_u,
+      lwind_u,
+      rwind_u,
+      res_u,
+      state_b
+    ],
+    dispatchCount: [dc, dc, 1]
+  })
+
+  sg.run( compute, render )
 }
 
 function run(){
