@@ -1,7 +1,7 @@
 import { default as seagulls } from '../seagulls.js'
 
 const WORKGROUP_SIZE = 8,
-      GRID_SIZE = 32,
+      GRID_SIZE = 8,
       NUM_AGENTS = 64
 
 const W = Math.round( window.innerWidth  / GRID_SIZE ),
@@ -80,7 +80,7 @@ fn cs(@builtin(global_invocation_id) cell:vec3u)  {
       vant.dir += .25; // turn 90 degrees ccw
       pheremones[ pIndex ] = 0.;  // set pheromone flag
     }else{
-      vant.dir -= .25; // turn clockwise
+      vant.dir -= .25; // turn 90 degrees clockwise
       pheremones[ pIndex ] = 1.;  // unset pheromone flag
     }
   }
@@ -91,7 +91,7 @@ fn cs(@builtin(global_invocation_id) cell:vec3u)  {
       vant.dir -= .25; // turn 90 degrees cw
       pheremones[ pIndex ] = 0.;  // set pheromone flag
     }else{
-      vant.dir += .05; // rotate slightly clockwise
+      vant.dir += .05; // rotate slightly ccw
       pheremones[ pIndex ] = 1.;  // unset pheromone flag
     }
   }
@@ -110,7 +110,7 @@ fn cs(@builtin(global_invocation_id) cell:vec3u)  {
   //type 3: ever expanding boat
   if (flag == 3.0){ 
     if (pheromone != 0.){
-      vant.dir += .2; // turn 90 cw
+      vant.dir += .2; // turn ~75 cw
       pheremones[ pIndex ] = 0.;  // set pheromone flag
     }else{
       vant.dir += .5; // turn 180
