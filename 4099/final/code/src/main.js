@@ -18,7 +18,7 @@ var   NUM_PARTICLES = 1024,
       state = new Float32Array( stateSize )
 
       const pane = new Pane();
-      const params = { boidsCount: 1024, boidSize: 0.01, r1: 50, r2: 0.15, r3: 100.0, cameraOpacity: 1.0}// dB: 0.5, minfeed: 0.055, feed:0.055, minkill: 0.062, kill:0.062, brushSize: 5.0, enableMouse:true}
+      const params = { boidsCount: 1024, boidSize: 0.01, r1: 50, r2: 0.15, r3: 100.0, xWind:0, yWind:0, cameraOpacity: 1.0}// dB: 0.5, minfeed: 0.055, feed:0.055, minkill: 0.062, kill:0.062, brushSize: 5.0, enableMouse:true}
       
      // Mouse.init();
     var psize = 0.01
@@ -44,6 +44,12 @@ var   NUM_PARTICLES = 1024,
     pane
         .addBinding(params, 'r3', { min: 50, max: 1000 })
         .on('change',  e => { r3 = e.value; })
+    pane
+        .addBinding(params, 'xWind', { min: -1, max: 1 })
+        .on('change',  e => { lwind[0] = e.value; })
+    pane
+        .addBinding(params, 'yWind', { min: -1, max: 1 })
+        .on('change',  e => { lwind[1] = e.value; })
     pane
         .addBinding(params, 'cameraOpacity', { min: 0., max: 1. })
         .on('change',  e => { cameraOpacity = e.value; })
