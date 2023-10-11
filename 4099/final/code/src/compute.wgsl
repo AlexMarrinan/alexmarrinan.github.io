@@ -92,7 +92,7 @@ fn rule3(boidIndex: u32) -> vec2f{
 
 fn wind() -> vec2f{
   var v: f32 = .015;
-  return vec2f(lwind.x*v, lwind.y*v);
+  return vec2f(lwind.x*v, -lwind.y*v);
 }
 
 @compute

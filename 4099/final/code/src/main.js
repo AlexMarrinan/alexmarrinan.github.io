@@ -87,31 +87,31 @@ const workgroup_count = [
 //     + event.accelerationIncludingGravity.z
 //   );
 // }
-// window.addEventListener("gamepadconnected", (e) => {
-//   console.log(
-//     "Gamepad connected at index %d: %s. %d buttons, %d axes.",
-//     e.gamepad.index,
-//     e.gamepad.id,
-//     e.gamepad.buttons.length,
-//     e.gamepad.axes.length,
-//   );
-//   gameLoop();
+window.addEventListener("gamepadconnected", (e) => {
+  console.log(
+    "Gamepad connected at index %d: %s. %d buttons, %d axes.",
+    e.gamepad.index,
+    e.gamepad.id,
+    e.gamepad.buttons.length,
+    e.gamepad.axes.length,
+  );
+  gameLoop();
 
-// });
+});
 
-// let interval;
+let interval;
 
-// if (!("ongamepadconnected" in window)) {
-//   // No gamepad events available, poll instead.
-//   interval = setInterval(pollGamepads, 500);
-// }
+if (!("ongamepadconnected" in window)) {
+  // No gamepad events available, poll instead.
+  interval = setInterval(pollGamepads, 500);
+}
 
-// function pollGamepads() {
-//   const gamepads = navigator.getGamepads();
-//   for (const gp of gamepads) {
-//     clearInterval(interval);
-//   }
-// }
+function pollGamepads() {
+  const gamepads = navigator.getGamepads();
+  for (const gp of gamepads) {
+    clearInterval(interval);
+  }
+}
 
 function testAxes(a){
   let lx = a[0];

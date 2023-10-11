@@ -9,7 +9,7 @@ struct Vant {
 @group(0) @binding(3) var<storage, read_write> render: array<f32>;
 
 fn vantIndex( cell:vec3u ) -> u32 {
-  let size = ${WORKGROUP_SIZE}u;
+  let size = workgroup_size;
   return cell.x + (cell.y * size); 
 }
 
@@ -19,7 +19,7 @@ fn pheromoneIndex( vant_pos: vec2f ) -> u32 {
 }
 
 @compute
-@workgroup_size(${WORKGROUP_SIZE}, ${WORKGROUP_SIZE},1)
+@workgroup_size(workgroup_size, workgroup_size,1)
 
 fn cs(@builtin(global_invocation_id) cell:vec3u)  {
   let pi2   = ${Math.PI*2};
