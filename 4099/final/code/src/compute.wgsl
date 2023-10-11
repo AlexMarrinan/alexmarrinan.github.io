@@ -34,7 +34,7 @@ fn rule1(boidIndex: u32) -> vec2f{
     //TODO: GET ACTAUL ARRAY SIZE
     var v: vec2f = vec2f(0., 0.);
     var b = state[ boidIndex ];
-    var s = 1024*5;
+    var s = 256*5;
     for (var i = 0; i < s; i = i + 6){
       if (i == i32(boidIndex)){
         continue;
@@ -58,7 +58,7 @@ fn rule2(boidIndex: u32) -> vec2f{
     //TODO: GET ACTAUL ARRAY SIZE
     var v: vec2f = vec2f(0., 0.);
     var b = state[ boidIndex ];
-    var s = 1024*5;
+    var s = 256*5;
     for (var i = 0; i < s; i = i + 6){
       if (i == i32(boidIndex)){
         continue;
@@ -76,8 +76,8 @@ fn rule3(boidIndex: u32) -> vec2f{
     //TODO: GET ACTAUL ARRAY SIZE
     var v: vec2f = vec2f(0., 0.);
     var b = state[ boidIndex ];
-    var s = 1024*5;
-    for (var i = 0; i < s; i = i + 6){
+    var s = 256*5;
+    for (var i = 0; i < s/*i32(stateSize)*/; i = i + 6){
       if (i == i32(boidIndex)){
         continue;
       }
@@ -92,7 +92,7 @@ fn rule3(boidIndex: u32) -> vec2f{
 
 fn wind() -> vec2f{
   var v: f32 = .015;
-  return vec2f(lwind.x*v, -lwind.y*v);
+  return vec2f(lwind.x*v, lwind.y*v);
 }
 
 @compute
