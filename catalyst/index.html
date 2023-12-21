@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alex Marrinan's Portfolio</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="src" href="../main.js">
+</head>
+<body>
+    <script>
+    function myFunction(imgs) {
+        // Get the expanded image
+        var expandImg = document.getElementById("expandedImg");
+        // Get the image text
+        var imgText = document.getElementById("imgtext");
+        // Use the same src in the expanded image as the image being clicked on from the grid
+        expandImg.src = imgs.src;
+        // Use the value of the alt attribute of the clickable image as text inside the expanded image
+        imgText.innerHTML = imgs.alt;
+        // Show the container element (hidden with CSS)
+        expandImg.parentElement.style.display = "block";
+    }
+    </script>
+    <h1>Alex Marrinan's Portfolio</h1>
+    <p><a href="../index.html"><strong>Home Page</strong></a></p>
+
+    <div class="game-page">        
+        <div>
+                <!-- The expanding image container -->
+                <div class="container">
+                    <!-- Close the image -->
+                    <span onclick="this.parentElement.style.display='none'" class="closebtn">&times;</span>
+                
+                    <!-- Expanded image -->
+                    <img class="large-img" id="expandedImg" style="width:100%">
+                
+                    <!-- Image text -->
+                    <div id="imgtext"></div>
+                </div>
+                <!-- The grid: four columns -->
+                <div class="row">
+                    <div class="column">
+                        <img class="game-img" src="../img/catlogo.png" alt="Catalyst Logo" onclick="myFunction(this);">
+                    </div>
+                    <div class="column">
+                        <img class="game-img" src="../img/cat-0.png" alt="Example Chamber 1" onclick="myFunction(this);">
+                    </div>
+                    <div class="column">
+                        <img class="game-img" src="../img/cat-1.png" alt="Example Chamber 1" onclick="myFunction(this);">
+                    </div>
+                    <div class="column">
+                        <img class="game-img" src="../img/cat-2.png" alt="Example Chamber 1" onclick="myFunction(this);">
+                    </div>
+                    <div class="column">
+                        <img class="game-img" src="../img/cat-3.png" alt="Example Chamber 2" onclick="myFunction(this);">
+                    </div>
+                    <div class="column">
+                        <img class="game-img" src="../img/cat-4.jpg" alt="Example Chamber 3" onclick="myFunction(this);">
+                    </div>
+                    <div class="column">
+                        <img class="game-img" src="../img/cat-5.jpg" alt="Example Chamber 3" onclick="myFunction(this);">
+                    </div>
+                </div>
+        </div>
+
+        <div>
+            <h2>Portal: Catalyst</h2>
+            <p><a href="https://www.moddb.com/mods/portal-catalyst"><strong>ModDB Page</strong></a></p>
+            <p class="description">Catalyst is a Portal 2 mod telling a new story with interliery orignally levels. Taking place between the story
+                of Portal and Portal 2, we follow Nick as they try to survive and escape the aftermath of GLADoS's death in the first game.
+                This project is done as a hobby and passion project between a bunch of people all across the Portal modding community. <br>
+                I joined the team in November 2022. Since then I've worked as a level desinger and enviormental artist. Most of the models and textures used
+                are created by Valve Corporation, but some are created by artists on our team.
+            </p>
+        </div>
+    </div>
+    <!-- <p><a href="OLD/index.html"><strong>Class Submissions</strong></a></p> -->
+</body>
+</html>
+

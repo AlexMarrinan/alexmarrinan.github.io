@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alex Marrinan's Portfolio</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="src" href="../main.js">
+</head>
+<body>
+    <script>
+    function myFunction(imgs) {
+        // Get the expanded image
+        var expandImg = document.getElementById("expandedImg");
+        // Get the image text
+        var imgText = document.getElementById("imgtext");
+        // Use the same src in the expanded image as the image being clicked on from the grid
+        expandImg.src = imgs.src;
+        // Use the value of the alt attribute of the clickable image as text inside the expanded image
+        imgText.innerHTML = imgs.alt;
+        // Show the container element (hidden with CSS)
+        expandImg.parentElement.style.display = "block";
+    }
+    </script>
+    <h1>Alex Marrinan's Portfolio</h1>
+    <p><a href="../index.html"><strong>Home Page</strong></a></p>
+
+    <div class="game-page">        
+        <div>
+                <!-- The expanding image container -->
+                <div class="container">
+                    <!-- Close the image -->
+                    <span onclick="this.parentElement.style.display='none'" class="closebtn">&times;</span>
+                
+                    <!-- Expanded image -->
+                    <img class="large-img" id="expandedImg" style="width:100%">
+                
+                    <!-- Image text -->
+                    <div id="imgtext"></div>
+                </div>
+                <!-- The grid: four columns -->
+                <div class="row">
+                    <div class="column">
+                        <img class="game-img" src="../img/rg4logo.png" alt="Title Screen" onclick="myFunction(this);">
+                    </div>
+                    <div class="column">
+                        <img class="game-img" src="../img/rg4-0.png" alt="Spawn Area" onclick="myFunction(this);">
+                    </div>
+                    <div class="column">
+                        <img class="game-img" src="../img/rg4-1.png" alt="First Area: Hand" onclick="myFunction(this);">
+                    </div>
+                    <div class="column">
+                        <img class="game-img" src="../img/rg4-2.png" alt="Second Area: Lower Arm" onclick="myFunction(this);">
+                    </div>
+                </div>
+        </div>
+
+        <div>
+            <h2>Gotta Go Bot</h2>
+            <p><a href="https://tatedonnelly.itch.io/gotta-go-bot"><strong>Itch Page</strong></a></p>
+            <p class="description">Gotta Go Bot! is a face paced skill based 3D platformer developed in Unreal Engine 5.
+                You play as a small robot exploring the remains of a much larger robot. Use your dash and graple abilities to 
+                traverse this abandoned, dangerous, overgrown, yet beutfiul enviroments.<br>
+                <br>
+                This project was devloped for the class IMGD 4000: Technical Development II. 
+                My role was as lead gameplay programmer. Myself and Jade McAvoy, a fellow programmer on the team,
+                designed the movment and character control. I implemented all code related to character movment, including
+                basic movement, jumping, grappeling, and dashing. I also hocked up art assets and animations to react based on player
+                input and the enviorment. 
+            </p>
+            <iframe width="420" height="315"
+                src="https://www.youtube.com/watch?v=uQkBE9wMHmw&t">
+            </iframe>
+        </div>
+    </div>
+    <!-- <p><a href="OLD/index.html"><strong>Class Submissions</strong></a></p> -->
+</body>
+</html>
+
